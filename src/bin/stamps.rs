@@ -10,13 +10,42 @@ use sdl2::image::{LoadSurface, InitFlag};
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::Cursor;
 use sdl2::pixels::Color;
-use sdl2::rect::Rect;
+use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
+use sdl2::render::{Canvas, RenderTarget, Texture, WindowCanvas};
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4);
 
 const MOUSE_CONSTANT: i32 = 1;
+struct TextureSurface<'r>(Texture<'r>,Surface<'r>);
+macro_rules! make_texture_surface {
+    ($texture_creator: expr, $surface: expr) => (match $texture_creator.create_texture_from_surface(&$surface) {
+        Ok(tex) => Ok(TextureSurface(tex, $surface)),
+        Err(e) => Err(format!("{:?}", e)),
+    });
+}
+/*
+
+impl<'r> TextureSurface<'r> {
+    fn new_for_render_target(tc: &mut Canvas<Surface<'r>>, mut s:Surface<'r>) -> Result<Self, String> {
+        match tc.texture_creator().create_texture_from_surface(&mut s) {
+            Ok(tex) => Ok(TextureSurface(tex, s)),
+            Err(e) => Err(format!("{:?}", e)),
+        }
+    }
+    fn new(tc: &mut WindowCanvas, mut s:Surface<'r>) -> Result<Self, String> {
+        match tc.texture_creator().create_texture_from_surface(&mut s) {
+            Ok(tex) => Ok(TextureSurface(tex, s)),
+            Err(e) => Err(format!("{:?}", e)),
+        }
+    }
+}
+*/
 struct SceneGraph {
     
+}
+struct Images<'r> {
+   default_cursor: TextureSurface<'r>,
+
 }
 struct SceneState{
     scene_graph: SceneGraph,
@@ -25,11 +54,19 @@ struct SceneState{
     cursor: Cursor,
 }
 impl SceneState {
-    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>) -> Result<(),String> {
+    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &mut Images) -> Result<(),String> {
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
-        canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
+        //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
+        canvas.copy_ex(
+            &images.default_cursor.0,
+            None, Some(Rect::new(self.mouse_x, self.mouse_y, 255, 255)),
+            0.0,
+            Point::new(0,0),//centre
+            false,//horiz
+            false,//vert
+            );
         canvas.present();
         Ok(())
     }
@@ -49,7 +86,7 @@ impl SceneState {
     }
 }
 
-fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, event: sdl2::event::Event, canvas: &mut sdl2::render::Canvas<T>, keys_down: &mut HashMap<Keycode, ()>) -> Result<bool,String>{
+fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, images: &mut Images, event: sdl2::event::Event, canvas: &mut sdl2::render::Canvas<T>, keys_down: &mut HashMap<Keycode, ()>) -> Result<bool,String>{
     let mut key_encountered = false;
     match event {
         Event::Quit{..} => return Err("Exit".to_string()),
@@ -76,7 +113,7 @@ fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, event: sdl2::ev
         }
         _ => {}
     }
-    state.render(canvas)?;
+    state.render(canvas, images)?;
     Ok(key_encountered)
 }
 
@@ -100,23 +137,29 @@ pub fn run(png: &Path) -> Result<(), String> {
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
     };
+    let cursor_surface = Surface::from_file(png)
+        .map_err(|err| format!("failed to load cursor image: {}", err))?;
+    let texture_creator = canvas.texture_creator();
+    let mut images = Images{
+        default_cursor:make_texture_surface!(texture_creator, cursor_surface)?,
+    };
     scene_state.cursor.set();
     'mainloop: loop {
         let loop_start_time = time::Instant::now();
         let mut events = sdl_context.event_pump()?;
         if keys_down.len() != 0 {
             for event in events.poll_iter() {
-                process(&mut scene_state, event, &mut canvas, &mut keys_down)?; // always break
+                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?; // always break
             }
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
                 std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);
                 scene_state.apply_keys(&keys_down);
-                scene_state.render(&mut canvas)?;
+                scene_state.render(&mut canvas, &mut images)?;
             }
         } else {
             for event in events.wait_iter() {
-                if process(&mut scene_state, event, &mut canvas, &mut keys_down)? {
+                if process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)? {
                     break;
                 }
             }
