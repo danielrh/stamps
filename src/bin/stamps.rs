@@ -61,7 +61,7 @@ impl SceneState {
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
         canvas.copy_ex(
             &images.default_cursor.0,
-            None, Some(Rect::new(self.mouse_x, self.mouse_y, 255, 255)),
+            None, Some(Rect::new(self.mouse_x, self.mouse_y, images.default_cursor.1.width(), images.default_cursor.1.height())),
             0.0,
             Point::new(0,0),//centre
             false,//horiz
@@ -113,7 +113,6 @@ fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, images: &mut Im
         }
         _ => {}
     }
-    state.render(canvas, images)?;
     Ok(key_encountered)
 }
 
@@ -151,6 +150,7 @@ pub fn run(png: &Path) -> Result<(), String> {
             for event in events.poll_iter() {
                 process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?; // always break
             }
+            scene_state.render(&mut canvas, &mut images)?;
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
                 std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);
@@ -159,10 +159,13 @@ pub fn run(png: &Path) -> Result<(), String> {
             }
         } else {
             for event in events.wait_iter() {
-                if process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)? {
-                    break;
-                }
+                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?;
+                break;
             }
+            for event in events.poll_iter() {
+                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?;
+            }
+            scene_state.render(&mut canvas, &mut images)?;
         };
     }
 }
