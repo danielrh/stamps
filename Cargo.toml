@@ -1,0 +1,18 @@
+[package]
+
+name    = "stamps"
+description = "SDL2 bindings for Rust"
+repository = "https://github.com/Rust-SDL2/rust-sdl2"
+documentation = "https://rust-sdl2.github.io/rust-sdl2/sdl2/"
+version = "0.32.2"
+license = "MIT"
+authors = [ "Tony Aldridge <tony@angry-lawyer.com>", "Cobrand <cobrandw@gmail.com>"]
+keywords = ["SDL", "windowing", "graphics", "api", "engine"]
+categories = ["rendering","api-bindings","game-engines","multimedia"]
+
+[[bin]]
+name="stamps"
+
+[dependencies]
+"sdl2" = {version="0.32.2", features=["image"]}
+
