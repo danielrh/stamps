@@ -43,6 +43,7 @@ impl<'r> TextureSurface<'r> {
     }
 }
  */
+#[derive(Clone)]
 struct InventoryItem {
     stamp_index: usize,
     stamp_source: Rect,
@@ -62,7 +63,25 @@ struct SceneState{
     cursor: Cursor,
 }
 impl SceneState {
-    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &mut Images) -> Result<(),String> {
+  fn compute_stamps_location(&mut self, canvas_viewport: Rect, images: &Images) {
+    self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,stamp_source:canvas_viewport});
+    let mut w_offset = 0i32;
+    let mut h_offset = 0i32;
+    let mut max_width = 0i32;
+    let mut last_height = 0;
+    for (index, (stamp, inventory)) in images.stamps.iter().zip(self.scene_graph.inventory.iter_mut()).enumerate() {
+      if h_offset + stamp.1.height() as i32 > canvas_viewport.height() as i32 {
+        h_offset = 0;
+        w_offset += max_width;
+        max_width = 0;        
+      }
+      inventory.stamp_index = index;
+      inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.1.width(), stamp.1.height());
+      max_width = std::cmp::max(max_width, stamp.1.width() as i32);
+      h_offset += stamp.1.height() as i32;
+    }
+  }
+    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &Images) -> Result<(),String> {
         canvas.set_draw_color(Color::RGBA(0, 64, 0, 255));
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
@@ -78,23 +97,17 @@ impl SceneState {
         let mut w_offset = 0i32;
         let mut h_offset = 0i32;
         let mut max_width = 0i32;
-        for (index, stamp) in images.stamps.iter().enumerate() {
-            let dest = Rect::new(w_offset, h_offset, stamp.1.width(), stamp.1.height());
-            canvas.copy_ex(
-                &stamp.0,
-                None, Some(dest),
-                0.0,
-                Point::new(0,0),//centre
-                false,//horiz
-                false,//vert
-            );
-            max_width = std::cmp::max(max_width, stamp.1.width() as i32);
-            h_offset += stamp.1.height() as i32;
-            if index + 1 < images.stamps.len() && h_offset + images.stamps[index+1].1.height() as i32 > canvas.viewport().height() as i32 {
-                h_offset = 0;
-                w_offset += max_width;
-                max_width = 0;
-            }
+        for stamp_loc in self.scene_graph.inventory.iter() {
+          let dest = stamp_loc.stamp_source;
+          let image = &images.stamps[stamp_loc.stamp_index];
+          canvas.copy_ex(
+            &image.0,
+            None, Some(dest),
+            0.0,
+            Point::new(0,0),//centre
+            false,//horiz
+            false,//vert
+          );
         }
         canvas.present();
         Ok(())
@@ -139,6 +152,12 @@ fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, images: &mut Im
         Event::MouseMotion {x, y, ..} => {
             state.mouse_x = x;
             state.mouse_y = y;
+        }
+        Event::Window{win_event:sdl2::event::WindowEvent::Resized(width,height),..} => {
+          state.compute_stamps_location(Rect::new(0,0,width as u32,height as u32), images);
+        }
+        Event::Window{win_event:sdl2::event::WindowEvent::SizeChanged(width,height),..} => {
+          state.compute_stamps_location(Rect::new(0,0,width as u32,height as u32), images);
         }
         _ => {}
     }
@@ -194,6 +213,7 @@ pub fn run(dir: &Path) -> Result<(), String> {
     }).map_err(|err| format!("Failed to load stamp {}", err))?;
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
+    scene_state.compute_stamps_location(canvas.viewport(), &images);
     'mainloop: loop {
         let loop_start_time = time::Instant::now();
         let mut events = sdl_context.event_pump()?;
