@@ -15,7 +15,7 @@ use sdl2::pixels::Color;
 use std::io;
 use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
-use sdl2::render::{Canvas, RenderTarget, Texture, WindowCanvas};
+use sdl2::render::Texture;
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4);
 
 const MOUSE_CONSTANT: i32 = 1;
@@ -51,6 +51,18 @@ struct InventoryItem {
 struct SceneGraph {
     inventory: Vec<InventoryItem>,
 }
+impl SceneGraph {
+  fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
+    for item in self.inventory.iter() {
+      if x >= item.stamp_source.x() && x <= item.stamp_source.width() as i32 + item.stamp_source.x() &&
+        y >= item.stamp_source.y() && x <= item.stamp_source.height() as i32 + item.stamp_source.y() {
+          return Some(item.clone())
+        }
+    }
+   None
+  }
+}
+
 struct Images<'r> {
    default_cursor: TextureSurface<'r>,
    stamps: Vec<TextureSurface<'r>>,
@@ -62,13 +74,13 @@ struct SceneState{
     mouse_y: i32,
     cursor: Cursor,
 }
+
 impl SceneState {
   fn compute_stamps_location(&mut self, canvas_viewport: Rect, images: &Images) {
     self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,stamp_source:canvas_viewport});
     let mut w_offset = 0i32;
     let mut h_offset = 0i32;
     let mut max_width = 0i32;
-    let mut last_height = 0;
     for (index, (stamp, inventory)) in images.stamps.iter().zip(self.scene_graph.inventory.iter_mut()).enumerate() {
       if h_offset + stamp.1.height() as i32 > canvas_viewport.height() as i32 {
         h_offset = 0;
@@ -93,10 +105,7 @@ impl SceneState {
             Point::new(0,0),//centre
             false,//horiz
             false,//vert
-        );
-        let mut w_offset = 0i32;
-        let mut h_offset = 0i32;
-        let mut max_width = 0i32;
+        ).map_err(|err| format!("{:?}", err))?;
         for stamp_loc in self.scene_graph.inventory.iter() {
           let dest = stamp_loc.stamp_source;
           let image = &images.stamps[stamp_loc.stamp_index];
@@ -107,7 +116,7 @@ impl SceneState {
             Point::new(0,0),//centre
             false,//horiz
             false,//vert
-          );
+          ).map_err(|err| format!("{:?}", err))?;
         }
         canvas.present();
         Ok(())
@@ -128,7 +137,7 @@ impl SceneState {
     }
 }
 
-fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, images: &mut Images, event: sdl2::event::Event, canvas: &mut sdl2::render::Canvas<T>, keys_down: &mut HashMap<Keycode, ()>) -> Result<bool,String>{
+fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Event, keys_down: &mut HashMap<Keycode, ()>) -> Result<bool,String>{
     let mut key_encountered = false;
     match event {
         Event::Quit{..} => return Err("Exit".to_string()),
@@ -219,7 +228,7 @@ pub fn run(dir: &Path) -> Result<(), String> {
         let mut events = sdl_context.event_pump()?;
         if keys_down.len() != 0 {
             for event in events.poll_iter() {
-                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?; // always break
+                process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
             }
             scene_state.render(&mut canvas, &mut images)?;
             let process_time = loop_start_time.elapsed();
@@ -230,11 +239,11 @@ pub fn run(dir: &Path) -> Result<(), String> {
             }
         } else {
             for event in events.wait_iter() {
-                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?;
+                process(&mut scene_state, &mut images, event, &mut keys_down)?;
                 break;
             }
             for event in events.poll_iter() {
-                process(&mut scene_state, &mut images, event, &mut canvas, &mut keys_down)?;
+                process(&mut scene_state, &mut images, event, &mut keys_down)?;
             }
             scene_state.render(&mut canvas, &mut images)?;
         };
