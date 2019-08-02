@@ -4,12 +4,15 @@ use std::time;
 use std::string::String;
 use std::collections::HashMap;
 use std::env;
+use std::vec::Vec;
 use std::path::Path;
+use std::fs;
 use sdl2::event::Event;
 use sdl2::image::{LoadSurface, InitFlag};
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::Cursor;
 use sdl2::pixels::Color;
+use std::io;
 use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::render::{Canvas, RenderTarget, Texture, WindowCanvas};
@@ -39,14 +42,19 @@ impl<'r> TextureSurface<'r> {
         }
     }
 }
-*/
+ */
+struct InventoryItem {
+    stamp_index: usize,
+    stamp_source: Rect,
+}
 struct SceneGraph {
-    
+    inventory: Vec<InventoryItem>,
 }
 struct Images<'r> {
    default_cursor: TextureSurface<'r>,
-
+   stamps: Vec<TextureSurface<'r>>,
 }
+
 struct SceneState{
     scene_graph: SceneGraph,
     mouse_x: i32,
@@ -55,7 +63,7 @@ struct SceneState{
 }
 impl SceneState {
     fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &mut Images) -> Result<(),String> {
-        canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
+        canvas.set_draw_color(Color::RGBA(0, 64, 0, 255));
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
@@ -66,7 +74,28 @@ impl SceneState {
             Point::new(0,0),//centre
             false,//horiz
             false,//vert
+        );
+        let mut w_offset = 0i32;
+        let mut h_offset = 0i32;
+        let mut max_width = 0i32;
+        for (index, stamp) in images.stamps.iter().enumerate() {
+            let dest = Rect::new(w_offset, h_offset, stamp.1.width(), stamp.1.height());
+            canvas.copy_ex(
+                &stamp.0,
+                None, Some(dest),
+                0.0,
+                Point::new(0,0),//centre
+                false,//horiz
+                false,//vert
             );
+            max_width = std::cmp::max(max_width, stamp.1.width() as i32);
+            h_offset += stamp.1.height() as i32;
+            if index + 1 < images.stamps.len() && h_offset + images.stamps[index+1].1.height() as i32 > canvas.viewport().height() as i32 {
+                h_offset = 0;
+                w_offset += max_width;
+                max_width = 0;
+            }
+        }
         canvas.present();
         Ok(())
     }
@@ -116,7 +145,20 @@ fn process<T:sdl2::render::RenderTarget>(state: &mut SceneState, images: &mut Im
     Ok(key_encountered)
 }
 
-pub fn run(png: &Path) -> Result<(), String> {
+fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb: &mut F) -> Result<(), io::Error> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            process_dir(&path, cb)?;
+        } else {
+            cb(&entry)?;
+        }
+    }
+    Ok(())
+}
+
+pub fn run(dir: &Path) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
@@ -127,21 +169,30 @@ pub fn run(png: &Path) -> Result<(), String> {
 
     let mut canvas = window.into_canvas().software().build().map_err(|e| e.to_string())?;
     let mut keys_down = HashMap::<Keycode, ()>::new();
-    let surface = Surface::from_file(png)
+    let surface = Surface::from_file(dir.join("cursor.png"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let mut scene_state = SceneState {
-        scene_graph:SceneGraph{},
+        scene_graph:SceneGraph{inventory:Vec::new(),},
         mouse_x:0,
         mouse_y:0,
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
     };
-    let cursor_surface = Surface::from_file(png)
+    let cursor_surface = Surface::from_file(dir.join("cursor.png"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let texture_creator = canvas.texture_creator();
     let mut images = Images{
         default_cursor:make_texture_surface!(texture_creator, cursor_surface)?,
+        stamps:Vec::new(),
     };
+    process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
+        let stamp_surface = Surface::from_file(p.path()).map_err(
+            |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
+        images.stamps.push(make_texture_surface!(texture_creator, stamp_surface).map_err(
+            |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("?X?"), err)))?);
+        Ok(())
+    }).map_err(|err| format!("Failed to load stamp {}", err))?;
+    //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     'mainloop: loop {
         let loop_start_time = time::Instant::now();
