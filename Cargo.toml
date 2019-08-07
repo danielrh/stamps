@@ -15,4 +15,7 @@ name="stamps"
 
 [dependencies]
 "sdl2" = {version="0.32.2", features=["image"]}
+"serde" = {version="1.0.98"}
+"serde_derive" = {version="1.0.98"}
+"serde-xml-rs" = {version="0.3.1"}
 
