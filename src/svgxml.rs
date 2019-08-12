@@ -47,14 +47,24 @@ impl image {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Transform {
-    midx: f64,
-    midy: f64,
-    rotate: f64,
-    tx: f64,
-    ty: f64,
-    scale: f64,
+    pub midx: f64,
+    pub midy: f64,
+    pub rotate: f64,
+    pub tx: f64,
+    pub ty: f64,
+    pub scale: f64,
 }
 impl Transform {
+  pub fn new(width: u32, height: u32) -> Transform {
+      Transform{
+          scale:1.0,
+          midx:width as f64/2.0,
+          midy:height as f64/2.0,
+          rotate:0.0,
+          tx:0.0,
+          ty:0.0,
+      }
+  }
   fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
     let mut components = [String::new(),String::new(),String::new(),String::new(),String::new()];
     let mut num_components = 0usize;

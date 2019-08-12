@@ -19,6 +19,7 @@ use sdl2::render::Texture;
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4);
 
 const MOUSE_CONSTANT: i32 = 1;
+const ROT_CONSTANT: f64 = 1.0;
 struct TextureSurface<'r>(Texture<'r>,Surface<'r>);
 macro_rules! make_texture_surface {
     ($texture_creator: expr, $surface: expr) => (match $texture_creator.create_texture_from_surface(&$surface) {
@@ -57,7 +58,6 @@ impl SceneGraph {
       for item in self.inventory.iter() {
       if x >= item.stamp_source.x() && x <= item.stamp_source.width() as i32 + item.stamp_source.x() &&
               y >= item.stamp_source.y() && y <= item.stamp_source.height() as i32 + item.stamp_source.y() {
-                  eprintln!("FOUND HIT TEST {} {} {:?}\n",x,y,item);
           return Some(item.clone())
         }
     }
@@ -75,6 +75,7 @@ struct SceneState{
     mouse_x: i32,
     mouse_y: i32,
     cursor: Cursor,
+    active_transform: stamps::Transform,
     active_stamp: Option<usize>,
     stamp_used: bool,
 }
@@ -108,8 +109,8 @@ impl SceneState {
                 &img.0,
                 None,
                 Some(Rect::new(self.mouse_x - img.1.width()as i32/2, self.mouse_y - img.1.height() as i32/2, img.1.width(), img.1.height())),
-                0.0,
-                Point::new(0,0),//centre
+                self.active_transform.rotate,
+                Point::new(self.active_transform.midx as i32,self.active_transform.midy as i32),//centre
                 false,//horiz
                 false,//vert
             ).map_err(|err| format!("{:?}", err))?;            
@@ -157,6 +158,12 @@ impl SceneState {
             self.mouse_y += MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
+        if keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
+            self.active_transform.rotate += ROT_CONSTANT;
+        }
+        if keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
+            self.active_transform.rotate -= ROT_CONSTANT;
+        }
         if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::Return) {
             self.click();
         }
@@ -165,6 +172,7 @@ impl SceneState {
         if let Some(hit) = self.scene_graph.hit_test(self.mouse_x, self.mouse_y) {
             self.active_stamp = Some(hit.stamp_index);
             self.stamp_used = false;
+            self.active_transform = stamps::Transform::new(hit.stamp_source.width(), hit.stamp_source.height());
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
             
         }
@@ -251,6 +259,7 @@ pub fn run(dir: &Path) -> Result<(), String> {
         mouse_x:0,
         mouse_y:0,
         active_stamp: None,
+        active_transform: stamps::Transform::new(0,0),
         stamp_used: false,
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
