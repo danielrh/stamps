@@ -199,6 +199,24 @@ impl SVG {
         stamps:Vec::new(),
       }
     }
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.width = width;
+        self.height = height;
+    }
+    pub fn add(&mut self, transform: Transform, img: String) {
+        let width = (transform.midx * 2.0) as u32;
+        let height = (transform.midy * 2.0) as u32;
+        self.stamps.push(g{
+            transform:transform,
+            image:image{
+                x:0,
+                y:0,
+                width:width,
+                height:height,
+                href:img,
+            },
+        });
+    }
     pub fn to_string(&self) -> Result<String,serde_xml_rs::Error> {
         let mut ret = vec![String::new();self.stamps.len()];
         for (serialized, deserialized) in ret.iter_mut().zip(self.stamps.iter())   {

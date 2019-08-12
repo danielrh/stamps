@@ -20,10 +20,18 @@ static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4
 
 const MOUSE_CONSTANT: i32 = 1;
 const ROT_CONSTANT: f64 = 1.0;
-struct TextureSurface<'r>(Texture<'r>,Surface<'r>);
+struct TextureSurface<'r> {
+    texture: Texture<'r>,
+    surface: Surface<'r>,
+    name: String,
+}
 macro_rules! make_texture_surface {
-    ($texture_creator: expr, $surface: expr) => (match $texture_creator.create_texture_from_surface(&$surface) {
-        Ok(tex) => Ok(TextureSurface(tex, $surface)),
+    ($texture_creator: expr, $surf: expr, $name: expr) => (match $texture_creator.create_texture_from_surface(&$surf) {
+        Ok(tex) => Ok(TextureSurface{
+            texture:tex,
+            surface:$surf,
+            name:$name,
+        }),
         Err(e) => Err(format!("{:?}", e)),
     });
 }
@@ -87,15 +95,15 @@ impl SceneState {
     let mut h_offset = 0i32;
     let mut max_width = 0i32;
     for (index, (stamp, inventory)) in images.stamps.iter().zip(self.scene_graph.inventory.iter_mut()).enumerate() {
-      if h_offset + stamp.1.height() as i32 > canvas_viewport.height() as i32 {
+      if h_offset + stamp.surface.height() as i32 > canvas_viewport.height() as i32 {
         h_offset = 0;
         w_offset += max_width;
         max_width = 0;        
       }
       inventory.stamp_index = index;
-      inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.1.width(), stamp.1.height());
-      max_width = std::cmp::max(max_width, stamp.1.width() as i32);
-      h_offset += stamp.1.height() as i32;
+      inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.surface.width(), stamp.surface.height());
+      max_width = std::cmp::max(max_width, stamp.surface.width() as i32);
+      h_offset += stamp.surface.height() as i32;
     }
   }
     fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &Images) -> Result<(),String> {
@@ -106,9 +114,9 @@ impl SceneState {
         if let Some(active_stamp) = self.active_stamp {
             let img = &images.stamps[active_stamp];
             canvas.copy_ex(
-                &img.0,
+                &img.texture,
                 None,
-                Some(Rect::new(self.mouse_x - img.1.width()as i32/2, self.mouse_y - img.1.height() as i32/2, img.1.width(), img.1.height())),
+                Some(Rect::new(self.mouse_x - img.surface.width()as i32/2, self.mouse_y - img.surface.height() as i32/2, img.surface.width(), img.surface.height())),
                 self.active_transform.rotate,
                 Point::new(self.active_transform.midx as i32,self.active_transform.midy as i32),//centre
                 false,//horiz
@@ -116,10 +124,10 @@ impl SceneState {
             ).map_err(|err| format!("{:?}", err))?;            
         } else {
             canvas.copy_ex(
-                &images.default_cursor.0,
+                &images.default_cursor.texture,
                 None,
                 Some(Rect::new(self.mouse_x, self.mouse_y,
-                               images.default_cursor.1.width(), images.default_cursor.1.height())),
+                               images.default_cursor.surface.width(), images.default_cursor.surface.height())),
                 0.0,
                 Point::new(0,0),//centre
                 false,//horiz
@@ -130,7 +138,7 @@ impl SceneState {
           let dest = stamp_loc.stamp_source;
           let image = &images.stamps[stamp_loc.stamp_index];
           canvas.copy_ex(
-            &image.0,
+            &image.texture,
             None, Some(dest),
             0.0,
             Point::new(0,0),//centre
@@ -174,7 +182,9 @@ impl SceneState {
             self.stamp_used = false;
             self.active_transform = stamps::Transform::new(hit.stamp_source.width(), hit.stamp_source.height());
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
-            
+            //self.scene_graph.arrangement.add(
+            //transform,
+                
         }
     }
     fn clear_cursor_if_stamp_used(&mut self) {
@@ -264,17 +274,19 @@ pub fn run(dir: &Path) -> Result<(), String> {
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
     };
-    let cursor_surface = Surface::from_file(dir.join("cursor.png"))
+    let cursor_surface_path = dir.join("cursor.png");
+    let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
+    let cursor_surface = Surface::from_file(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let texture_creator = canvas.texture_creator();
     let mut images = Images{
-        default_cursor:make_texture_surface!(texture_creator, cursor_surface)?,
+        default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
         stamps:Vec::new(),
     };
     process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
         let stamp_surface = Surface::from_file(p.path()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
-        images.stamps.push(make_texture_surface!(texture_creator, stamp_surface).map_err(
+        images.stamps.push(make_texture_surface!(texture_creator, stamp_surface, p.path().to_str().unwrap().to_string()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("?X?"), err)))?);
         Ok(())
     }).map_err(|err| format!("Failed to load stamp {}", err))?;
