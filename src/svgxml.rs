@@ -47,12 +47,12 @@ impl image {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct Transform {
-  midx: f64,
-  midy: f64,
-  rotate: f64,
-  tx: f64,
-  ty: f64,
-  scale: f64,
+    midx: f64,
+    midy: f64,
+    rotate: f64,
+    tx: f64,
+    ty: f64,
+    scale: f64,
 }
 impl Transform {
   fn to_string(&self) -> Result<String, serde_xml_rs::Error> {

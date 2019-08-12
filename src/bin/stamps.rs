@@ -43,20 +43,21 @@ impl<'r> TextureSurface<'r> {
     }
 }
  */
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct InventoryItem {
     stamp_index: usize,
     stamp_source: Rect,
 }
 struct SceneGraph {
   inventory: Vec<InventoryItem>,
-  picture: stamps::SVG,
+  arrangement: stamps::SVG,
 }
 impl SceneGraph {
   pub fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
-    for item in self.inventory.iter() {
+      for item in self.inventory.iter() {
       if x >= item.stamp_source.x() && x <= item.stamp_source.width() as i32 + item.stamp_source.x() &&
-        y >= item.stamp_source.y() && x <= item.stamp_source.height() as i32 + item.stamp_source.y() {
+              y >= item.stamp_source.y() && y <= item.stamp_source.height() as i32 + item.stamp_source.y() {
+                  eprintln!("FOUND HIT TEST {} {} {:?}\n",x,y,item);
           return Some(item.clone())
         }
     }
@@ -74,6 +75,8 @@ struct SceneState{
     mouse_x: i32,
     mouse_y: i32,
     cursor: Cursor,
+    active_stamp: Option<usize>,
+    stamp_used: bool,
 }
 
 impl SceneState {
@@ -99,14 +102,29 @@ impl SceneState {
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
-        canvas.copy_ex(
-            &images.default_cursor.0,
-            None, Some(Rect::new(self.mouse_x, self.mouse_y, images.default_cursor.1.width(), images.default_cursor.1.height())),
-            0.0,
-            Point::new(0,0),//centre
-            false,//horiz
-            false,//vert
-        ).map_err(|err| format!("{:?}", err))?;
+        if let Some(active_stamp) = self.active_stamp {
+            let img = &images.stamps[active_stamp];
+            canvas.copy_ex(
+                &img.0,
+                None,
+                Some(Rect::new(self.mouse_x - img.1.width()as i32/2, self.mouse_y - img.1.height() as i32/2, img.1.width(), img.1.height())),
+                0.0,
+                Point::new(0,0),//centre
+                false,//horiz
+                false,//vert
+            ).map_err(|err| format!("{:?}", err))?;            
+        } else {
+            canvas.copy_ex(
+                &images.default_cursor.0,
+                None,
+                Some(Rect::new(self.mouse_x, self.mouse_y,
+                               images.default_cursor.1.width(), images.default_cursor.1.height())),
+                0.0,
+                Point::new(0,0),//centre
+                false,//horiz
+                false,//vert
+            ).map_err(|err| format!("{:?}", err))?;
+        }
         for stamp_loc in self.scene_graph.inventory.iter() {
           let dest = stamp_loc.stamp_source;
           let image = &images.stamps[stamp_loc.stamp_index];
@@ -125,15 +143,37 @@ impl SceneState {
     fn apply_keys(&mut self, keys_down: &HashMap<Keycode, ()>) {
         if keys_down.contains_key(&Keycode::Left) {
             self.mouse_x -= MOUSE_CONSTANT;
+            self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Right) {
             self.mouse_x += MOUSE_CONSTANT;
+            self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Up) {
             self.mouse_y -= MOUSE_CONSTANT;
+            self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Down) {
             self.mouse_y += MOUSE_CONSTANT;
+            self.clear_cursor_if_stamp_used();
+        }
+        if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::Return) {
+            self.click();
+        }
+    }
+    fn click(&mut self) {
+        if let Some(hit) = self.scene_graph.hit_test(self.mouse_x, self.mouse_y) {
+            self.active_stamp = Some(hit.stamp_index);
+            self.stamp_used = false;
+        } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
+            
+        }
+    }
+    fn clear_cursor_if_stamp_used(&mut self) {
+        if self.stamp_used {
+            if let Some(_) = self.scene_graph.hit_test(self.mouse_x, self.mouse_y) {
+                self.active_stamp = None;
+            }
         }
     }
 }
@@ -158,10 +198,12 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
         Event::MouseButtonDown {x, y, ..} => {
             state.mouse_x = x;
             state.mouse_y = y;
+            state.click();
         }
         Event::MouseMotion {x, y, ..} => {
             state.mouse_x = x;
             state.mouse_y = y;
+            state.clear_cursor_if_stamp_used();
         }
         Event::Window{win_event:sdl2::event::WindowEvent::Resized(width,height),..} => {
           state.compute_stamps_location(Rect::new(0,0,width as u32,height as u32), images);
@@ -204,10 +246,12 @@ pub fn run(dir: &Path) -> Result<(), String> {
     let mut scene_state = SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
-            picture:stamps::SVG::new(wsize.0, wsize.1),
+            arrangement:stamps::SVG::new(wsize.0, wsize.1),
         },
         mouse_x:0,
         mouse_y:0,
+        active_stamp: None,
+        stamp_used: false,
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
     };
