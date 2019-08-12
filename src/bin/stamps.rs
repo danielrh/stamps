@@ -1,5 +1,5 @@
 extern crate sdl2;
-
+extern crate stamps;
 use std::time;
 use std::string::String;
 use std::collections::HashMap;
@@ -49,10 +49,11 @@ struct InventoryItem {
     stamp_source: Rect,
 }
 struct SceneGraph {
-    inventory: Vec<InventoryItem>,
+  inventory: Vec<InventoryItem>,
+  picture: stamps::SVG,
 }
 impl SceneGraph {
-  fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
+  pub fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
     for item in self.inventory.iter() {
       if x >= item.stamp_source.x() && x <= item.stamp_source.width() as i32 + item.stamp_source.x() &&
         y >= item.stamp_source.y() && x <= item.stamp_source.height() as i32 + item.stamp_source.y() {
@@ -195,12 +196,16 @@ pub fn run(dir: &Path) -> Result<(), String> {
       .build()
       .map_err(|e| e.to_string())?;
 
+    let wsize = window.size();
     let mut canvas = window.into_canvas().software().build().map_err(|e| e.to_string())?;
     let mut keys_down = HashMap::<Keycode, ()>::new();
     let surface = Surface::from_file(dir.join("cursor.png"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let mut scene_state = SceneState {
-        scene_graph:SceneGraph{inventory:Vec::new(),},
+        scene_graph:SceneGraph{
+            inventory:Vec::new(),
+            picture:stamps::SVG::new(wsize.0, wsize.1),
+        },
         mouse_x:0,
         mouse_y:0,
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
