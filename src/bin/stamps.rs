@@ -56,10 +56,12 @@ impl<'r> TextureSurface<'r> {
 struct InventoryItem {
     stamp_index: usize,
     stamp_source: Rect,
+    stamp_name: String,
 }
 struct SceneGraph {
-  inventory: Vec<InventoryItem>,
-  arrangement: stamps::SVG,
+    inventory: Vec<InventoryItem>,
+    inventory_map: HashMap<String, usize>,
+    arrangement: stamps::SVG,
 }
 impl SceneGraph {
   pub fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
@@ -90,7 +92,7 @@ struct SceneState{
 
 impl SceneState {
   fn compute_stamps_location(&mut self, canvas_viewport: Rect, images: &Images) {
-    self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,stamp_source:canvas_viewport});
+    self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,stamp_source:canvas_viewport, stamp_name:String::new()});
     let mut w_offset = 0i32;
     let mut h_offset = 0i32;
     let mut max_width = 0i32;
@@ -101,16 +103,46 @@ impl SceneState {
         max_width = 0;        
       }
       inventory.stamp_index = index;
+      inventory.stamp_name = stamp.name.clone();
       inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.surface.width(), stamp.surface.height());
+      self.scene_graph.inventory_map.insert(inventory.stamp_name.clone(), index);
       max_width = std::cmp::max(max_width, stamp.surface.width() as i32);
       h_offset += stamp.surface.height() as i32;
     }
   }
     fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &Images) -> Result<(),String> {
-        canvas.set_draw_color(Color::RGBA(0, 64, 0, 255));
-        canvas.clear();
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
+        canvas.clear();
+        canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
+        for g in self.scene_graph.arrangement.stamps.iter() {
+            if let Some(index) = self.scene_graph.inventory_map.get(&g.image.href) {
+                let img = &images.stamps[*index];
+                canvas.copy_ex(
+                    &img.texture,
+                    None,
+                    Some(Rect::new(g.transform.tx as i32, g.transform.ty as i32, g.image.width, g.image.height)),
+                    g.transform.rotate,
+                    Point::new(g.transform.midx as i32, g.transform.midy as i32),
+                    false,
+                    false,
+                ).map_err(|err| format!("{:?}", err))?;
+            } else {
+                // skip drawing unknown item
+            }
+        }
+        for stamp_loc in self.scene_graph.inventory.iter() {
+          let dest = stamp_loc.stamp_source;
+          let image = &images.stamps[stamp_loc.stamp_index];
+          canvas.copy_ex(
+            &image.texture,
+            None, Some(dest),
+            0.0,
+            Point::new(0,0),//centre
+            false,//horiz
+            false,//vert
+          ).map_err(|err| format!("{:?}", err))?;
+        }
         if let Some(active_stamp) = self.active_stamp {
             let img = &images.stamps[active_stamp];
             canvas.copy_ex(
@@ -133,18 +165,6 @@ impl SceneState {
                 false,//horiz
                 false,//vert
             ).map_err(|err| format!("{:?}", err))?;
-        }
-        for stamp_loc in self.scene_graph.inventory.iter() {
-          let dest = stamp_loc.stamp_source;
-          let image = &images.stamps[stamp_loc.stamp_index];
-          canvas.copy_ex(
-            &image.texture,
-            None, Some(dest),
-            0.0,
-            Point::new(0,0),//centre
-            false,//horiz
-            false,//vert
-          ).map_err(|err| format!("{:?}", err))?;
         }
         canvas.present();
         Ok(())
@@ -182,9 +202,14 @@ impl SceneState {
             self.stamp_used = false;
             self.active_transform = stamps::Transform::new(hit.stamp_source.width(), hit.stamp_source.height());
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
-            //self.scene_graph.arrangement.add(
-            //transform,
-                
+            let mut transform = self.active_transform.clone();
+            transform.tx = self.mouse_x as f64 - self.active_transform.midx;
+            transform.ty = self.mouse_y as f64 - self.active_transform.midy;
+            self.scene_graph.arrangement.add(
+                transform,
+                self.scene_graph.inventory[active_stamp].stamp_name.clone(),
+            );
+            self.stamp_used = true;
         }
     }
     fn clear_cursor_if_stamp_used(&mut self) {
@@ -264,6 +289,7 @@ pub fn run(dir: &Path) -> Result<(), String> {
     let mut scene_state = SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
+            inventory_map:HashMap::new(),
             arrangement:stamps::SVG::new(wsize.0, wsize.1),
         },
         mouse_x:0,

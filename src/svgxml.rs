@@ -45,7 +45,7 @@ impl image {
         ))
     }
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct Transform {
     pub midx: f64,
     pub midy: f64,
