@@ -80,12 +80,18 @@ struct Images<'r> {
    stamps: Vec<TextureSurface<'r>>,
 }
 
-struct SceneState{
-    scene_graph: SceneGraph,
+#[derive(Clone,PartialEq)]
+struct CursorTransform {
     mouse_x: i32,
     mouse_y: i32,
+    transform: stamps::Transform,    
+}
+
+struct SceneState{
+    scene_graph: SceneGraph,
+    cursor_transform: CursorTransform,
+    last_return_mouse: Option<CursorTransform>,
     cursor: Cursor,
-    active_transform: stamps::Transform,
     active_stamp: Option<usize>,
     stamp_used: bool,
 }
@@ -148,9 +154,13 @@ impl SceneState {
             canvas.copy_ex(
                 &img.texture,
                 None,
-                Some(Rect::new(self.mouse_x - img.surface.width()as i32/2, self.mouse_y - img.surface.height() as i32/2, img.surface.width(), img.surface.height())),
-                self.active_transform.rotate,
-                Point::new(self.active_transform.midx as i32,self.active_transform.midy as i32),//centre
+                Some(Rect::new(self.cursor_transform.mouse_x - img.surface.width()as i32/2,
+                               self.cursor_transform.mouse_y - img.surface.height() as i32/2,
+                               img.surface.width(),
+                               img.surface.height())),
+                self.cursor_transform.transform.rotate,
+                Point::new(self.cursor_transform.transform.midx as i32,
+                           self.cursor_transform.transform.midy as i32),//centre
                 false,//horiz
                 false,//vert
             ).map_err(|err| format!("{:?}", err))?;            
@@ -158,7 +168,7 @@ impl SceneState {
             canvas.copy_ex(
                 &images.default_cursor.texture,
                 None,
-                Some(Rect::new(self.mouse_x, self.mouse_y,
+                Some(Rect::new(self.cursor_transform.mouse_x, self.cursor_transform.mouse_y,
                                images.default_cursor.surface.width(), images.default_cursor.surface.height())),
                 0.0,
                 Point::new(0,0),//centre
@@ -169,42 +179,59 @@ impl SceneState {
         canvas.present();
         Ok(())
     }
-    fn apply_keys(&mut self, keys_down: &HashMap<Keycode, ()>) {
+    fn apply_keys(&mut self, keys_down: &HashMap<Keycode, ()>, new_key: Option<Keycode>, repeat:bool) {
         if keys_down.contains_key(&Keycode::Left) {
-            self.mouse_x -= MOUSE_CONSTANT;
+            self.cursor_transform.mouse_x -= MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
+
         }
         if keys_down.contains_key(&Keycode::Right) {
-            self.mouse_x += MOUSE_CONSTANT;
+            self.cursor_transform.mouse_x += MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Up) {
-            self.mouse_y -= MOUSE_CONSTANT;
+            self.cursor_transform.mouse_y -= MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Down) {
-            self.mouse_y += MOUSE_CONSTANT;
+            self.cursor_transform.mouse_y += MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
-            self.active_transform.rotate += ROT_CONSTANT;
+            self.cursor_transform.transform.rotate += ROT_CONSTANT;
         }
         if keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
-            self.active_transform.rotate -= ROT_CONSTANT;
+            self.cursor_transform.transform.rotate -= ROT_CONSTANT;
         }
-        if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::Return) {
-            self.click();
+        if keys_down.contains_key(&Keycode::KpEnter) {
+            if let Some(last_transform) = &self.last_return_mouse {
+                if *last_transform != self.cursor_transform || !repeat {
+                    self.click();
+                }
+            } else {
+                self.click();
+            }
+            self.last_return_mouse = Some(self.cursor_transform.clone())
+        } else {
+            self.last_return_mouse = None; // other keypresses clear this
+        }
+        if let Some(Keycode::Return) = new_key {
+            if !repeat {
+                self.click();
+            }
         }
     }
     fn click(&mut self) {
-        if let Some(hit) = self.scene_graph.hit_test(self.mouse_x, self.mouse_y) {
+        if let Some(hit) = self.scene_graph.hit_test(self.cursor_transform.mouse_x,
+                                                     self.cursor_transform.mouse_y) {
             self.active_stamp = Some(hit.stamp_index);
             self.stamp_used = false;
-            self.active_transform = stamps::Transform::new(hit.stamp_source.width(), hit.stamp_source.height());
+            self.cursor_transform.transform = stamps::Transform::new(hit.stamp_source.width(),
+                                                                     hit.stamp_source.height());
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
-            let mut transform = self.active_transform.clone();
-            transform.tx = self.mouse_x as f64 - self.active_transform.midx;
-            transform.ty = self.mouse_y as f64 - self.active_transform.midy;
+            let mut transform = self.cursor_transform.transform.clone();
+            transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx;
+            transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy;
             self.scene_graph.arrangement.add(
                 transform,
                 self.scene_graph.inventory[active_stamp].stamp_name.clone(),
@@ -214,7 +241,8 @@ impl SceneState {
     }
     fn clear_cursor_if_stamp_used(&mut self) {
         if self.stamp_used {
-            if let Some(_) = self.scene_graph.hit_test(self.mouse_x, self.mouse_y) {
+            if let Some(_) = self.scene_graph.hit_test(self.cursor_transform.mouse_x,
+                                                       self.cursor_transform.mouse_y) {
                 self.active_stamp = None;
             }
         }
@@ -226,26 +254,31 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
     match event {
         Event::Quit{..} => return Err("Exit".to_string()),
         Event::KeyDown {keycode: Option::Some(key_code), ..} =>{
+            let repeat;
             if let None = keys_down.insert(key_code, ()) {
+                repeat = false;
                 for (key,_)in keys_down.iter() {
                     eprintln!("Key is down {}\n", *key)
                 }
+            } else {
+                repeat = true;
             }
             key_encountered = true;
-            state.apply_keys(&keys_down);
+            state.apply_keys(&keys_down, Some(key_code), repeat);
         },
         Event::KeyUp {keycode: Option::Some(key_code), ..} =>
         {
+            state.last_return_mouse = None; // other keypresses clear this
             keys_down.remove(&key_code);
         },
         Event::MouseButtonDown {x, y, ..} => {
-            state.mouse_x = x;
-            state.mouse_y = y;
+            state.cursor_transform.mouse_x = x;
+            state.cursor_transform.mouse_y = y;
             state.click();
         }
         Event::MouseMotion {x, y, ..} => {
-            state.mouse_x = x;
-            state.mouse_y = y;
+            state.cursor_transform.mouse_x = x;
+            state.cursor_transform.mouse_y = y;
             state.clear_cursor_if_stamp_used();
         }
         Event::Window{win_event:sdl2::event::WindowEvent::Resized(width,height),..} => {
@@ -292,10 +325,13 @@ pub fn run(dir: &Path) -> Result<(), String> {
             inventory_map:HashMap::new(),
             arrangement:stamps::SVG::new(wsize.0, wsize.1),
         },
-        mouse_x:0,
-        mouse_y:0,
+        cursor_transform: CursorTransform {
+            mouse_x:0,
+            mouse_y:0,
+            transform: stamps::Transform::new(0,0),
+        },
+        last_return_mouse: None,
         active_stamp: None,
-        active_transform: stamps::Transform::new(0,0),
         stamp_used: false,
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
@@ -330,7 +366,7 @@ pub fn run(dir: &Path) -> Result<(), String> {
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
                 std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);
-                scene_state.apply_keys(&keys_down);
+                scene_state.apply_keys(&keys_down, None, true);
                 scene_state.render(&mut canvas, &mut images)?;
             }
         } else {
