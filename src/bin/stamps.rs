@@ -1,5 +1,6 @@
 extern crate sdl2;
 extern crate stamps;
+use stamps::SVG;
 use std::time;
 use std::string::String;
 use std::collections::HashMap;
@@ -13,6 +14,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::mouse::Cursor;
 use sdl2::pixels::Color;
 use std::io;
+use std::io::{Read, Write};
 use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::render::Texture;
@@ -94,6 +96,7 @@ struct SceneState{
     cursor: Cursor,
     active_stamp: Option<usize>,
     stamp_used: bool,
+    save_file_name: String,
 }
 
 impl SceneState {
@@ -252,7 +255,13 @@ impl SceneState {
 fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Event, keys_down: &mut HashMap<Keycode, ()>) -> Result<bool,String>{
     let mut key_encountered = false;
     match event {
-        Event::Quit{..} => return Err("Exit".to_string()),
+        Event::Quit{..} => {
+            write_from_string(Path::new(&state.save_file_name),
+                              &state.scene_graph.arrangement.to_string().map_err(
+                                  |err| format!("{:?}", err))?).map_err(
+                |err| format!("{:?}", err))?;
+            return Err("Exit".to_string())
+        },
         Event::KeyDown {keycode: Option::Some(key_code), ..} =>{
             let repeat;
             if let None = keys_down.insert(key_code, ()) {
@@ -305,7 +314,7 @@ fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb:
     Ok(())
 }
 
-pub fn run(dir: &Path) -> Result<(), String> {
+pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
     let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
@@ -319,11 +328,12 @@ pub fn run(dir: &Path) -> Result<(), String> {
     let mut keys_down = HashMap::<Keycode, ()>::new();
     let surface = Surface::from_file(dir.join("cursor.png"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
+    svg.resize(wsize.0, wsize.1);
     let mut scene_state = SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
             inventory_map:HashMap::new(),
-            arrangement:stamps::SVG::new(wsize.0, wsize.1),
+            arrangement:svg,
         },
         cursor_transform: CursorTransform {
             mouse_x:0,
@@ -333,8 +343,10 @@ pub fn run(dir: &Path) -> Result<(), String> {
         last_return_mouse: None,
         active_stamp: None,
         stamp_used: false,
+        
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
+        save_file_name: save_file_name.to_string(),
     };
     let cursor_surface_path = dir.join("cursor.png");
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
@@ -382,15 +394,33 @@ pub fn run(dir: &Path) -> Result<(), String> {
     }
 }
 
+fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
+    let mut f = fs::File::open(filename)?;
+    f.write(s.as_bytes())?;
+    Ok(())
+}
 
+fn read_to_string(filename: &Path) ->  Result<String, io::Error> {
+    let mut f = fs::File::open(filename)?;
+    let mut buffer = String::new();
+    f.read_to_string(&mut buffer)?;
+    Ok(buffer)
+}
 fn main() -> Result<(), String> {
     let args: Vec<_> = env::args().collect();
 
     if args.len() < 2 {
-        println!("Usage: cargo run /path/to/image.(png|jpg)");
+        println!("Usage: cargo run /path/to/result");
         Ok(())
     } else {
-        let ret = run(Path::new(&args[1]));
+        let save_file_name = &Path::new(&args[1]);
+        let svg = if let Ok(file_data) = read_to_string(save_file_name) {
+            SVG::from_str(&file_data).unwrap()
+        } else {
+            SVG::new(1024,768)
+                
+        };
+        let ret = run(svg, &args[1], Path::new("assets"));
         match ret {
             Err(x) => {
                 if x == "Exit" {

@@ -199,6 +199,10 @@ impl SVG {
         stamps:Vec::new(),
       }
     }
+    pub fn from_str(s: &str) -> Result<Self,serde_xml_rs::Error> {
+        use super::serde_xml_rs::from_str;
+        from_str(s)
+    }
     pub fn resize(&mut self, width: u32, height: u32) {
         self.width = width;
         self.height = height;
