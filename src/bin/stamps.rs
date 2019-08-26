@@ -395,7 +395,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
 }
 
 fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
-    let mut f = fs::File::open(filename)?;
+    let mut f = fs::File::create(filename)?;
     f.write(s.as_bytes())?;
     Ok(())
 }
