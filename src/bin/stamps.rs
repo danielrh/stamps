@@ -1,6 +1,6 @@
 extern crate sdl2;
 extern crate stamps;
-use stamps::SVG;
+use stamps::{SVG, HrefAndClipMask};
 use std::time;
 use std::string::String;
 use std::collections::HashMap;
@@ -60,10 +60,31 @@ struct InventoryItem {
     stamp_source: Rect,
     stamp_name: String,
 }
+#[derive(Clone, Debug)]
+struct InventoryKey{
+    name: String,
+    clip: String,
+}
+struct Arrangement{
+    svg: stamps::SVG,
+    dirty: bool
+}
+impl Arrangement {
+    pub fn new(svg: stamps::SVG) -> Self {
+        Arrangement{svg:svg, dirty:true}
+    }
+    pub fn get_mut(&mut self) -> &mut stamps::SVG {
+        self.dirty = true;
+        &mut self.svg
+    }
+    pub fn get(&self) -> &stamps::SVG{
+        &self.svg
+    }
+}
 struct SceneGraph {
     inventory: Vec<InventoryItem>,
-    inventory_map: HashMap<String, usize>,
-    arrangement: stamps::SVG,
+    inventory_map: HashMap<HrefAndClipMask, usize>,
+    arrangement: Arrangement,
 }
 impl SceneGraph {
   pub fn hit_test(&self, x:i32, y:i32) -> Option<InventoryItem> {
@@ -75,11 +96,30 @@ impl SceneGraph {
     }
    None
   }
+  fn prepare_textures<T:sdl2::render::RenderTarget>(
+        &mut self, canvas: &mut sdl2::render::Canvas<T>,images: &mut Images) -> Result<(), String> {
+      if !self.arrangement.dirty {
+          return Ok(());
+      }
+      for g in self.arrangement.svg.stamps.iter() {
+          if let None = self.inventory_map.get(&g.image.href) {
+              // now we need to prerender
+              if let Some(img) = self.inventory_map.get(&HrefAndClipMask{
+                  url:g.image.href.url.clone(),
+                  clip:String::new(),
+              }) {
+                  
+              }
+          }
+      }
+      Ok(())
+  }
 }
 
 struct Images<'r> {
-   default_cursor: TextureSurface<'r>,
-   stamps: Vec<TextureSurface<'r>>,
+    default_cursor: TextureSurface<'r>,
+    stamps: Vec<TextureSurface<'r>>,
+    max_selectable_stamp: usize,
 }
 
 #[derive(Clone,PartialEq)]
@@ -114,7 +154,7 @@ impl SceneState {
       inventory.stamp_index = index;
       inventory.stamp_name = stamp.name.clone();
       inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.surface.width(), stamp.surface.height());
-      self.scene_graph.inventory_map.insert(inventory.stamp_name.clone(), index);
+      self.scene_graph.inventory_map.insert(HrefAndClipMask{url:inventory.stamp_name.clone(), clip:String::new()}, index);
       max_width = std::cmp::max(max_width, stamp.surface.width() as i32);
       h_offset += stamp.surface.height() as i32;
     }
@@ -124,7 +164,7 @@ impl SceneState {
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
-        for g in self.scene_graph.arrangement.stamps.iter() {
+        for g in self.scene_graph.arrangement.get().stamps.iter() {
             if let Some(index) = self.scene_graph.inventory_map.get(&g.image.href) {
                 let img = &images.stamps[*index];
                 canvas.copy_ex(
@@ -235,7 +275,7 @@ impl SceneState {
             let mut transform = self.cursor_transform.transform.clone();
             transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx;
             transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy;
-            self.scene_graph.arrangement.add(
+            self.scene_graph.arrangement.get_mut().add(
                 transform,
                 self.scene_graph.inventory[active_stamp].stamp_name.clone(),
             );
@@ -257,7 +297,7 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
     match event {
         Event::Quit{..} => {
             write_from_string(Path::new(&state.save_file_name),
-                              &state.scene_graph.arrangement.to_string().map_err(
+                              &state.scene_graph.arrangement.get().to_string().map_err(
                                   |err| format!("{:?}", err))?).map_err(
                 |err| format!("{:?}", err))?;
             return Err("Exit".to_string())
@@ -333,7 +373,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         scene_graph:SceneGraph{
             inventory:Vec::new(),
             inventory_map:HashMap::new(),
-            arrangement:svg,
+            arrangement:Arrangement::new(svg),
         },
         cursor_transform: CursorTransform {
             mouse_x:0,
@@ -356,12 +396,14 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let mut images = Images{
         default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
         stamps:Vec::new(),
+        max_selectable_stamp:0,
     };
     process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
         let stamp_surface = Surface::from_file(p.path()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
         images.stamps.push(make_texture_surface!(texture_creator, stamp_surface, p.path().to_str().unwrap().to_string()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("?X?"), err)))?);
+        images.max_selectable_stamp += 1;
         Ok(())
     }).map_err(|err| format!("Failed to load stamp {}", err))?;
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
@@ -374,7 +416,8 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             for event in events.poll_iter() {
                 process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
             }
-            scene_state.render(&mut canvas, &mut images)?;
+            scene_state.scene_graph.prepare_textures(&mut canvas, &mut images)?;
+            scene_state.render(&mut canvas, &images)?;
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
                 std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);

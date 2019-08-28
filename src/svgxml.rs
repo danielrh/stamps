@@ -26,23 +26,81 @@ fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
         s
     }
 }
+
+
+#[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+pub struct HrefAndClipMask {
+    pub url: String,
+    pub clip: String,
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
-pub struct image {
+struct image {
     pub x: i32,
     pub y: i32,
     pub width: u32,
     pub height: u32,
     pub href: String,
+    #[serde(default)]
+    #[serde(rename="clip-path")]
+    pub clip_mask: String,
 }
 
-impl image {
+#[allow(non_camel_case_types)]
+#[derive(Debug, Serialize, PartialEq)]
+pub struct Image {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
+    pub href: HrefAndClipMask,
+}
+
+impl From<image> for Image {
+    fn from(im: image) -> Self {
+        Image{
+            x:im.x,
+            y:im.y,
+            width:im.width,
+            height:im.height,
+            href:HrefAndClipMask{
+                url:im.href,
+                clip:im.clip_mask,
+            },
+        }
+    }
+}
+
+impl From<Image> for image {
+    fn from(im: Image) -> Self {
+        image{
+            x:im.x,
+            y:im.y,
+            width:im.width,
+            height:im.height,
+            href:im.href.url,
+            clip_mask:im.href.clip,
+        }
+    }
+}
+
+impl Image {
     fn to_string(&self) -> Result<String,serde_xml_rs::Error> {
         let mut scratch = String::new();
-        Ok(format!(
-            "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" href=\"{}\"/>",
-            self.x,self.y,self.width,self.height,attr_escape(&self.href, &mut scratch),
-        ))
+        let mut scratch2 = String::new();
+        if self.href.clip.len() != 0 {
+            Ok(format!(
+                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" href=\"{}\" clip-path=\"{}\"/>",
+                self.x,self.y,self.width,self.height,attr_escape(&self.href.url, &mut scratch), attr_escape(&self.href.clip, &mut scratch2),
+            ))
+        } else {
+            Ok(format!(
+                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" href=\"{}\"/>",
+                self.x,self.y,self.width,self.height,attr_escape(&self.href.url, &mut scratch),
+            ))
+        }
     }
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
@@ -161,13 +219,21 @@ where
   gen_transform_deserializer(input.as_str()).map_err(serde::de::Error::custom)
 }
 
+fn image_deserializer<'de, D>(deserializer: D) -> Result<Image, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  Ok(Image::from(image::deserialize(deserializer)?))
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct g {
     #[serde(deserialize_with="transform_deserializer")]
     pub transform: Transform,
     #[serde(rename="$value")]
-    pub image: image,
+    #[serde(deserialize_with="image_deserializer")]
+    pub image: Image,
 }
 
 
@@ -212,12 +278,12 @@ impl SVG {
         let height = (transform.midy * 2.0) as u32;
         self.stamps.push(g{
             transform:transform,
-            image:image{
+            image:Image{
                 x:0,
                 y:0,
                 width:width,
                 height:height,
-                href:img,
+                href:HrefAndClipMask{url:img, clip:String::new()},
             },
         });
     }
@@ -239,7 +305,7 @@ impl SVG {
 mod test {
     #[test]
     fn test_basic_serde() {
-        use super::{SVG, image, Transform, g};
+        use super::{SVG, HrefAndClipMask, Image, Transform, g};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
 <image x="0" y="0" width="128" height="128" href="simpler.svg"/>
@@ -256,22 +322,67 @@ mod test {
             stamps:vec![
                 g{
                   transform:Transform{scale:2.0, tx:0.0, ty:0.0, rotate:8.0, midx:64.0, midy:64.0},
-                    image:image{
+                    image:Image{
                         x:0,
                         y:0,
                         height:128,
                         width:128,
-                        href:"simpler.svg".to_string(),
+                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:String::new()},
                     }
                 },
                 g{
                   transform:Transform{scale:1.0, tx:290.0, ty:80.0, rotate:220.0, midx:64.0, midy:64.0},
-                    image:image{
+                    image:Image{
                         x:0,
                         y:0,
                         height:128,
                         width:128,
-                        href:"simpler.svg".to_string(),
+                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:String::new()},
+                    }                        
+                },
+            ],
+        };
+        use super::serde_xml_rs::from_str;
+        let svg_deserialized: SVG = from_str(s).unwrap();
+        assert_eq!(svg_deserialized, svg_struct);
+        let svg_serialized = svg_struct.to_string().unwrap();
+        eprintln!("{}",svg_serialized);
+        assert_eq!(svg_serialized, s);
+    }
+    #[test]
+    fn test_clip_mask_serde() {
+        use super::{SVG, HrefAndClipMask, Image, Transform, g};
+        let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+<g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
+<image x="0" y="0" width="128" height="128" href="simpler.svg" clip-path="url(#clippy)"/>
+</g>
+<g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
+<image x="0" y="0" width="128" height="128" href="simpler2.svg"/>
+</g>
+</svg>"##;
+        let svg_struct = SVG {
+            width:500,
+            height:500,
+            version:"2.0".to_string(),
+            stamps:vec![
+                g{
+                  transform:Transform{scale:2.0, tx:0.0, ty:0.0, rotate:8.0, midx:64.0, midy:64.0},
+                    image:Image{
+                        x:0,
+                        y:0,
+                        height:128,
+                        width:128,
+                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:"url(#clippy)".to_string()},
+                    }
+                },
+                g{
+                  transform:Transform{scale:1.0, tx:290.0, ty:80.0, rotate:220.0, midx:64.0, midy:64.0},
+                    image:Image{
+                        x:0,
+                        y:0,
+                        height:128,
+                        width:128,
+                        href:HrefAndClipMask{url:"simpler2.svg".to_string(),clip:String::new()},
                     }                        
                 },
             ],
