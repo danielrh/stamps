@@ -247,12 +247,57 @@ impl g {
     }
 }
 
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct Polygon {
+    points: String,
+}
+impl Polygon {
+    fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
+        let mut scratch = String::new();
+        Ok(format!("<polygon points=\"{}\"/>\n",
+                   attr_escape(&self.points, &mut scratch),
+        ))
+    }
+}
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct ClipPath{
+    id: String,
+    polygon: Polygon,
+}
+impl ClipPath {
+    fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
+        let mut scratch = String::new();
+        Ok(format!("<clipPath id=\"{}\">\n{}</clipPath>\n",
+                   attr_escape(&self.id, &mut scratch),
+                   self.polygon.to_string()?,
+        ))
+    }
+}
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct defs {
+    clipPath: Vec<ClipPath>,
+}
+impl defs {
+    fn to_string(&self) -> Result<String,serde_xml_rs::Error> {
+        if self.clipPath.len() == 0 {
+            return Ok(String::new());
+        }
+        let mut ret = vec![String::new();self.clipPath.len()];
+        for (serialized, deserialized) in ret.iter_mut().zip(self.clipPath.iter())   {
+            *serialized = deserialized.to_string()?;
+        }
+        Ok(format!("<defs>\n{}</defs>\n", ret.join("")))
+    }
+}
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct SVG {
     pub version: String,
     pub width: u32,
     pub height: u32,
-    #[serde(rename="$value")]
+    #[serde(default)]
+    pub defs: defs,
+    #[serde(rename="g")]
     pub stamps: Vec<g>,
 }
 
@@ -263,6 +308,7 @@ impl SVG {
         width: width,
         height:height,
         stamps:Vec::new(),
+        defs:defs{clipPath:Vec::new(),},
       }
     }
     pub fn from_str(s: &str) -> Result<Self,serde_xml_rs::Error> {
@@ -292,12 +338,15 @@ impl SVG {
         for (serialized, deserialized) in ret.iter_mut().zip(self.stamps.iter())   {
             *serialized = deserialized.to_string()?;
         }
+       
         Ok(format!(
-            "<svg version=\"{}\" width=\"{}\" height=\"{}\" xmlns=\"http://www.w3.org/2000/svg\">\n{}\n</svg>",
+            "<svg version=\"{}\" width=\"{}\" height=\"{}\" xmlns=\"http://www.w3.org/2000/svg\">\n{}\n{}</svg>",
             self.version,
             self.width,
             self.height,
-            ret.join("\n")))
+            ret.join("\n"),
+            self.defs.to_string()?
+        ))
     }
 }
 
@@ -305,7 +354,7 @@ impl SVG {
 mod test {
     #[test]
     fn test_basic_serde() {
-        use super::{SVG, HrefAndClipMask, Image, Transform, g};
+        use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
 <image x="0" y="0" width="128" height="128" href="simpler.svg"/>
@@ -341,6 +390,9 @@ mod test {
                     }                        
                 },
             ],
+            defs:defs{
+                clipPath:Vec::new(),
+            },
         };
         use super::serde_xml_rs::from_str;
         let svg_deserialized: SVG = from_str(s).unwrap();
@@ -351,7 +403,7 @@ mod test {
     }
     #[test]
     fn test_clip_mask_serde() {
-        use super::{SVG, HrefAndClipMask, Image, Transform, g};
+        use super::{SVG, HrefAndClipMask, Image, Transform, g, defs, Polygon, ClipPath};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
 <image x="0" y="0" width="128" height="128" href="simpler.svg" clip-path="url(#clippy)"/>
@@ -359,6 +411,14 @@ mod test {
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
 <image x="0" y="0" width="128" height="128" href="simpler2.svg"/>
 </g>
+<defs>
+<clipPath id="hellote">
+<polygon points="1 1,2 2,3 3,4 4"/>
+</clipPath>
+<clipPath id="goodbyte">
+<polygon points="0 0,1 1,2 2,-3 3"/>
+</clipPath>
+</defs>
 </svg>"##;
         let svg_struct = SVG {
             width:500,
@@ -386,12 +446,29 @@ mod test {
                     }                        
                 },
             ],
+            defs:defs{
+                clipPath:vec![
+                     ClipPath {
+                        id: "hellote".to_string(),
+                        polygon:Polygon{
+                            points: "1 1,2 2,3 3,4 4".to_string(),
+                        },
+                    },
+                    ClipPath {
+                        id: "goodbyte".to_string(),
+                        polygon:Polygon{
+                            points: "0 0,1 1,2 2,-3 3".to_string(),
+                        },
+                    },
+                    ],
+            },
         };
         use super::serde_xml_rs::from_str;
         let svg_deserialized: SVG = from_str(s).unwrap();
         assert_eq!(svg_deserialized, svg_struct);
         let svg_serialized = svg_struct.to_string().unwrap();
         eprintln!("{}",svg_serialized);
+        eprintln!("{:?}",svg_deserialized);
         assert_eq!(svg_serialized, s);
     }
     #[test]
