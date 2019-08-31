@@ -102,6 +102,7 @@ impl SceneGraph {
       if !self.arrangement.dirty {
           return Ok(());
       }
+      let mut polygon_intercepts = Vec::<i32>::new();
       for g in self.arrangement.svg.stamps.iter() {
           if let None = self.inventory_map.get(&g.image.href) {
               // now we need to prerender
@@ -112,13 +113,15 @@ impl SceneGraph {
                   }
               }
               let mut dst_surface: Surface;
+              let width;
+              let height;
               if let Some(img) = self.inventory_map.get(&HrefAndClipMask{
                   url:g.image.href.url.clone(),
                   clip:String::new(),
               }) {
                   let src_surface = &images.stamps[*img].surface;
-                  let width = src_surface.width();
-                  let height = src_surface.height();
+                  width = src_surface.width();
+                  height = src_surface.height();
                   dst_surface = Surface::new(width, height, PixelFormatEnum::RGBA8888)?;
                   src_surface.blit(
                       Rect::new(0,0,width,height),
@@ -128,8 +131,63 @@ impl SceneGraph {
               } else {
                   continue
               }
+              let pitch = dst_surface.pitch();
+              let polygon_points = &polygon.points;
+              polygon_intercepts.resize(polygon_points.len(), 0);
+              let last_point_index = polygon_points.len().wrapping_sub(1);
               dst_surface.with_lock_mut(|data:&mut[u8]| {
                   // rasterize our friend the clip polygon
+                  for y in 0..height {
+                      let y_byte_offset = y as usize * pitch as usize;
+                      let mut num_intercepts = 0;
+                      for (index, point0) in polygon_points.iter().enumerate() {
+                          let prev_point_index = if index == 0 {
+                              last_point_index
+                          } else {
+                              index - 1
+                          };
+                          let point1 = polygon_points[prev_point_index];
+                          let x0;
+                          let x1;
+                          let y0;
+                          let y1;
+                          if point0.1 < point1.1 {
+                              x0 = point0.0;
+                              x1 = point1.0;
+                              y0 = point0.1;
+                              y1 = point1.1
+                          } else if point0.1 > point1.1 {
+                              x0 = point1.0;
+                              x1 = point0.0;
+                              y0 = point1.1;
+                              y1 = point0.1
+                          } else {
+                              continue
+                          }
+                          if ((y as f64) >= y0) && ((y as f64) < y1) {
+                              polygon_intercepts[num_intercepts] = ((y as f64 - y0) * (x1 as f64- x0 as f64) / (y1 as f64 - y0 as f64) + x0 as f64) as i32;
+                              num_intercepts += 1;
+                          }
+                      }
+                      polygon_intercepts.resize(num_intercepts, 0);
+                      polygon_intercepts.sort();
+                      if (polygon_intercepts.len() & 1) == 1 {
+                          polygon_intercepts.push(std::i32::MAX);
+                      }
+                      for i in 0..polygon_intercepts.len()/2 {
+                          use std::cmp::{min, max};
+                          let start = max(min(polygon_intercepts[i*2], width as i32 - 1), 0);
+                          let end = max(min(polygon_intercepts[i*2 + 1], width as i32 - 1), 0);
+                          if start < end {
+                              for x in start..end {
+                                  data[y_byte_offset + x as usize * 4] = 0;
+                                  data[y_byte_offset + x as usize  * 4 + 1] = 0;
+                                  data[y_byte_offset + x as usize  * 4 + 2] = 0;
+                                  data[y_byte_offset + x as usize  * 4 + 3] = 0;
+                              }
+                          }
+                      }
+                  }
               })
           }
       }

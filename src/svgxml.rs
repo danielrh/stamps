@@ -285,7 +285,7 @@ where
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
 pub struct Polygon {
     #[serde(deserialize_with="point_deserializer")]
-    points: Vec<F64Point>,
+    pub points: Vec<F64Point>,
 }
 impl Polygon {
     fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
