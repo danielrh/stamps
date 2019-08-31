@@ -153,7 +153,35 @@ impl Transform {
 fn f64_err(e: std::num::ParseFloatError) -> String {
   format!("{}", e).to_string()
 }
-  
+#[derive(Clone, Copy, Default, PartialEq, Debug,Deserialize, Serialize)]
+pub struct F64Point {
+    pub x: f64,
+    pub y: f64,
+}
+fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
+    let mut ret = Vec::<F64Point>::new();
+    for pair in input.split(',') {
+        let mut pnt = [0.0;2];
+        let mut index = 0usize;
+        for coord in pair.split_whitespace() {
+            if coord.len() == 0 {
+                continue
+            }
+            pnt[std::cmp::min(1, index)] = coord.parse().map_err(|e| format!("{:?}", e))?;
+            index += 1;
+        }
+        if index != 2 {
+            return Err(format!("Too many dims when making polygon: {}", index));
+        }
+        ret.push(F64Point{x:pnt[0], y:pnt[1]});
+    }
+    Ok(ret)
+}
+
+fn pack_polygon_points(input: &[F64Point]) -> String {
+    input.iter().map(|val|format!("{} {}", val.x, val.y)).collect::<Vec<String>>().join(",")
+}
+
 const TFORM_REGEX_STR: &'static str = r"^\s*(?:scale\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?\s*(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?(?:rotate\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\s*\)?)\s*$";
 fn gen_transform_deserializer(input:&str) -> Result<Transform, String> {
   lazy_static! {
@@ -247,16 +275,25 @@ impl g {
     }
 }
 
+fn point_deserializer<'de, D>(deserializer: D) -> Result<Vec<F64Point>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let input = String::deserialize(deserializer)?;
+  unpack_polygon_points(input.as_str()).map_err(serde::de::Error::custom)
+}
+
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
 pub struct Polygon {
-    points: String,
+    #[serde(deserialize_with="point_deserializer")]
+    points: Vec<F64Point>,
 }
 impl Polygon {
     fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
         let mut scratch = String::new();
         Ok(format!("<polygon points=\"{}\"/>\n",
-                   attr_escape(&self.points, &mut scratch),
+                   pack_polygon_points(&self.points),
         ))
     }
 }
@@ -352,6 +389,7 @@ impl SVG {
 
 
 mod test {
+    use super::F64Point;
     #[test]
     fn test_basic_serde() {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
@@ -413,7 +451,7 @@ mod test {
 </g>
 <defs>
 <clipPath id="hellote">
-<polygon points="1 1,2 2,3 3,4 4"/>
+<polygon points="1 -1,2 2,3 3,4 4.25"/>
 </clipPath>
 <clipPath id="goodbyte">
 <polygon points="0 0,1 1,2 2,-3 3"/>
@@ -451,13 +489,21 @@ mod test {
                      ClipPath {
                         id: "hellote".to_string(),
                         polygon:Polygon{
-                            points: "1 1,2 2,3 3,4 4".to_string(),
+                            points:vec![F64Point{x:1., y:-1.},
+                                                       F64Point{x:2., y:2.},
+                                                       F64Point{x:3., y:3.},
+                                                       F64Point{x:4., y:4.25},
+                            ],
                         },
                     },
                     ClipPath {
                         id: "goodbyte".to_string(),
                         polygon:Polygon{
-                            points: "0 0,1 1,2 2,-3 3".to_string(),
+                            points:vec![F64Point{x:0., y:0.},
+                                        F64Point{x:1., y:1.},
+                                        F64Point{x:2., y:2.},
+                                        F64Point{x:-3., y:3.},
+                        ],
                         },
                     },
                     ],
@@ -484,6 +530,43 @@ mod test {
         assert_eq!("H\u{0026bE}EL&quot;LOTE&apos;",
                    attr_escape(&"H\u{0026bE}EL\"LOTE'".to_string(), &mut scratch));
     }
+  #[test]
+  fn test_parse_polygon_points() {
+      use super::F64Point;
+      let st = "1 2,3 4, 5 6,7 8";
+      let parsed = super::unpack_polygon_points(st).unwrap();
+      assert_eq!(&parsed,
+                 &[F64Point{x:1., y:2.},
+                   F64Point{x:3., y:4.},
+                   F64Point{x:5., y:6.},
+                   F64Point{x:7., y:8.},
+                 ]);
+  }
+  #[test]
+  fn test_parse_bad_polygon_points() {
+      use super::F64Point;
+      let st = "1 2 3,3 4, 5 6,7 8";
+      let parsed = super::unpack_polygon_points(st);
+      if let Ok(_) = parsed {
+          panic!("Need to have an error here")
+      }
+      let st2 = "1 2a,3 4, 5 6,7 8";
+      let parsed2 = super::unpack_polygon_points(st2);
+      if let Ok(_) = parsed2 {
+          panic!("Need to have an error here")
+      }      
+  }
+  #[test]
+  fn test_pack_polygon_points() {
+      use super::F64Point;
+      let rendered = super::pack_polygon_points(&[F64Point{x:1., y:2.},
+                    F64Point{x:3., y:4.},
+                    F64Point{x:5., y:6.},
+                    F64Point{x:7., y:8.},
+      ]);
+      let st = "1 2,3 4,5 6,7 8";
+      assert_eq!(rendered, st.to_string())
+  }
   #[test]
   fn test_regex() {
     let tform: regex::Regex = regex::Regex::new(super::TFORM_REGEX_STR).unwrap();
