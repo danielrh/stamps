@@ -153,11 +153,9 @@ impl Transform {
 fn f64_err(e: std::num::ParseFloatError) -> String {
   format!("{}", e).to_string()
 }
-#[derive(Clone, Copy, Default, PartialEq, Debug,Deserialize, Serialize)]
-pub struct F64Point {
-    pub x: f64,
-    pub y: f64,
-}
+
+type F64Point = (f64, f64);
+
 fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
     let mut ret = Vec::<F64Point>::new();
     for pair in input.split(',') {
@@ -173,13 +171,13 @@ fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
         if index != 2 {
             return Err(format!("Too many dims when making polygon: {}", index));
         }
-        ret.push(F64Point{x:pnt[0], y:pnt[1]});
+        ret.push((pnt[0], pnt[1]));
     }
     Ok(ret)
 }
 
 fn pack_polygon_points(input: &[F64Point]) -> String {
-    input.iter().map(|val|format!("{} {}", val.x, val.y)).collect::<Vec<String>>().join(",")
+    input.iter().map(|val|format!("{} {}", val.0, val.1)).collect::<Vec<String>>().join(",")
 }
 
 const TFORM_REGEX_STR: &'static str = r"^\s*(?:scale\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?\s*(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?(?:rotate\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\s*\)?)\s*$";
@@ -489,20 +487,20 @@ mod test {
                      ClipPath {
                         id: "hellote".to_string(),
                         polygon:Polygon{
-                            points:vec![F64Point{x:1., y:-1.},
-                                                       F64Point{x:2., y:2.},
-                                                       F64Point{x:3., y:3.},
-                                                       F64Point{x:4., y:4.25},
+                            points:vec![(1., -1.),
+                                        (2., 2.),
+                                        (3., 3.),
+                                        (4., 4.25),
                             ],
                         },
                     },
                     ClipPath {
                         id: "goodbyte".to_string(),
                         polygon:Polygon{
-                            points:vec![F64Point{x:0., y:0.},
-                                        F64Point{x:1., y:1.},
-                                        F64Point{x:2., y:2.},
-                                        F64Point{x:-3., y:3.},
+                            points:vec![(0., 0.),
+                                        (1., 1.),
+                                        (2., 2.),
+                                        (-3., 3.),
                         ],
                         },
                     },
@@ -532,19 +530,17 @@ mod test {
     }
   #[test]
   fn test_parse_polygon_points() {
-      use super::F64Point;
       let st = "1 2,3 4, 5 6,7 8";
       let parsed = super::unpack_polygon_points(st).unwrap();
       assert_eq!(&parsed,
-                 &[F64Point{x:1., y:2.},
-                   F64Point{x:3., y:4.},
-                   F64Point{x:5., y:6.},
-                   F64Point{x:7., y:8.},
+                 &[(1., 2.),
+                   (3., 4.),
+                   (5., 6.),
+                   (7., 8.),
                  ]);
   }
   #[test]
   fn test_parse_bad_polygon_points() {
-      use super::F64Point;
       let st = "1 2 3,3 4, 5 6,7 8";
       let parsed = super::unpack_polygon_points(st);
       if let Ok(_) = parsed {
@@ -558,11 +554,10 @@ mod test {
   }
   #[test]
   fn test_pack_polygon_points() {
-      use super::F64Point;
-      let rendered = super::pack_polygon_points(&[F64Point{x:1., y:2.},
-                    F64Point{x:3., y:4.},
-                    F64Point{x:5., y:6.},
-                    F64Point{x:7., y:8.},
+      let rendered = super::pack_polygon_points(&[(1., 2.),
+                    (3., 4.),
+                    (5., 6.),
+                    (7., 8.),
       ]);
       let st = "1 2,3 4,5 6,7 8";
       assert_eq!(rendered, st.to_string())
