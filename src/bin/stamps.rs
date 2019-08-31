@@ -1,6 +1,6 @@
 extern crate sdl2;
 extern crate stamps;
-use stamps::{SVG, HrefAndClipMask};
+use stamps::{SVG, HrefAndClipMask, Polygon};
 use std::time;
 use std::string::String;
 use std::collections::HashMap;
@@ -17,6 +17,7 @@ use std::io;
 use std::io::{Read, Write};
 use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
+use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4);
 
@@ -104,12 +105,32 @@ impl SceneGraph {
       for g in self.arrangement.svg.stamps.iter() {
           if let None = self.inventory_map.get(&g.image.href) {
               // now we need to prerender
+              let mut polygon = Polygon::default();
+              for clips in self.arrangement.svg.defs.clipPath.iter() {
+                  if "url(#".to_string() + &clips.id + ")" == g.image.href.clip {
+                      polygon = clips.polygon.clone();
+                  }
+              }
+              let mut dst_surface: Surface;
               if let Some(img) = self.inventory_map.get(&HrefAndClipMask{
                   url:g.image.href.url.clone(),
                   clip:String::new(),
               }) {
-                  
+                  let src_surface = &images.stamps[*img].surface;
+                  let width = src_surface.width();
+                  let height = src_surface.height();
+                  dst_surface = Surface::new(width, height, PixelFormatEnum::RGBA8888)?;
+                  src_surface.blit(
+                      Rect::new(0,0,width,height),
+                      &mut dst_surface,
+                      Rect::new(0,0,width,height),
+                      )?;
+              } else {
+                  continue
               }
+              dst_surface.with_lock_mut(|data:&mut[u8]| {
+                  // rasterize our friend the clip polygon
+              })
           }
       }
       Ok(())

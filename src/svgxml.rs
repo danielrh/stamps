@@ -248,7 +248,7 @@ impl g {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default, Clone)]
 pub struct Polygon {
     points: String,
 }
@@ -262,8 +262,8 @@ impl Polygon {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct ClipPath{
-    id: String,
-    polygon: Polygon,
+    pub id: String,
+    pub polygon: Polygon,
 }
 impl ClipPath {
     fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
@@ -276,7 +276,7 @@ impl ClipPath {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct defs {
-    clipPath: Vec<ClipPath>,
+    pub clipPath: Vec<ClipPath>,
 }
 impl defs {
     fn to_string(&self) -> Result<String,serde_xml_rs::Error> {

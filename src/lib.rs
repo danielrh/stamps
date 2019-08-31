@@ -6,4 +6,4 @@ extern crate regex;
 #[macro_use]
 extern crate lazy_static;
 mod svgxml;
-pub use svgxml::{SVG, Transform, HrefAndClipMask};
+pub use svgxml::{SVG, Transform, HrefAndClipMask, Polygon};
