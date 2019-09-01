@@ -28,6 +28,10 @@ struct TextureSurface<'r> {
     surface: Surface<'r>,
     name: String,
 }
+
+fn box_intersect (t0: &stamps::Transform, t1: &stamps::Transform) -> bool {
+    true
+}
 fn constrain_mask_transform(t: &mut stamps::Transform, width: u32, height: u32) {
     if t.tx > width as f64 {
         t.tx = width as f64;
@@ -420,9 +424,18 @@ impl SceneState {
             let mut transform = self.cursor_transform.transform.clone();
             transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx;
             transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy;
+            let mut new_item_url = self.scene_graph.inventory[active_stamp].stamp_name.clone();
+            // add clip mask
+            let mut any_intersect = false;
+            for mask in self.mask_transforms.iter() {
+                if box_intersect(mask, &transform) {
+                    any_intersect = true;
+                }
+            }
+            // end add clip mask
             self.scene_graph.arrangement.get_mut().add(
                 transform,
-                self.scene_graph.inventory[active_stamp].stamp_name.clone(),
+                new_item_url,
             );
             self.stamp_used = true;
         }
