@@ -432,10 +432,30 @@ impl SceneState {
                     any_intersect = true;
                 }
             }
+            let clip_mask;
+            if any_intersect {
+                let mut points = Vec::<stamps::F64Point>::new();
+                points.push((0.,0.));
+                points.push((transform.midx * 2.,0.));
+                points.push((transform.midx * 2., transform.midy * 2.));
+                points.push((0., transform.midy * 2.));
+                let index = self.scene_graph.arrangement.get_mut().defs.clipPath.len();
+                let id = format!("{}", index);
+                clip_mask = "url(#".to_string() + &id + ")";
+                self.scene_graph.arrangement.get_mut().defs.clipPath.push(stamps::ClipPath{
+                    id:id,
+                    polygon:Polygon{
+                        points:points,
+                    },
+                });
+            } else {
+                clip_mask = String::new();
+            }
             // end add clip mask
             self.scene_graph.arrangement.get_mut().add(
                 transform,
                 new_item_url,
+                clip_mask,
             );
             self.stamp_used = true;
         }

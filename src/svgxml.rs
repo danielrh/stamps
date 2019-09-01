@@ -154,7 +154,7 @@ fn f64_err(e: std::num::ParseFloatError) -> String {
   format!("{}", e).to_string()
 }
 
-type F64Point = (f64, f64);
+pub type F64Point = (f64, f64);
 
 fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
     let mut ret = Vec::<F64Point>::new();
@@ -354,7 +354,7 @@ impl SVG {
         self.width = width;
         self.height = height;
     }
-    pub fn add(&mut self, transform: Transform, img: String) {
+    pub fn add(&mut self, transform: Transform, img: String, clip_mask: String) {
         let width = (transform.midx * 2.0) as u32;
         let height = (transform.midy * 2.0) as u32;
         self.stamps.push(g{
@@ -364,7 +364,7 @@ impl SVG {
                 y:0,
                 width:width,
                 height:height,
-                href:HrefAndClipMask{url:img, clip:String::new()},
+                href:HrefAndClipMask{url:img, clip:clip_mask},
             },
         });
     }
