@@ -154,11 +154,11 @@ impl SceneGraph {
               }
               let pitch = dst_surface.pitch();
               let polygon_points = &polygon.points;
-              polygon_intercepts.resize(polygon_points.len() + 2, 0);
               let last_point_index = polygon_points.len().wrapping_sub(1);
               dst_surface.with_lock_mut(|data:&mut[u8]| {
                   // rasterize our friend the clip polygon
                   for y in 0..height {
+                      polygon_intercepts.resize(polygon_points.len() + 2, 0);
                       let y_byte_offset = y as usize * pitch as usize;
                       polygon_intercepts[0] = std::i32::MIN; // clear the opposite of clip mask
                       let mut num_intercepts = 1;
@@ -435,10 +435,21 @@ impl SceneState {
             let clip_mask;
             if any_intersect {
                 let mut points = Vec::<stamps::F64Point>::new();
-                points.push((0.,0.));
-                points.push((transform.midx * 2.,0.));
-                points.push((transform.midx * 2., transform.midy * 2.));
-                points.push((0., transform.midy * 2.));
+                points.push((-transform.midx * 4.,-transform.midy * 4.));
+                points.push((transform.midx * 4.,-transform.midy * 4.));
+                points.push((transform.midx * 4., transform.midy * 4.));
+                points.push((-transform.midx * 4., transform.midy * 4.));
+                let ret_location = (-transform.midx * 4.,-transform.midy * 4.);
+                for mask in self.mask_transforms.iter() {
+                    use stamps::ftransform;
+                    use stamps::itransform;
+                    points.push(itransform(&transform, ftransform(mask, (0.,0.))));
+                    points.push(itransform(&transform, ftransform(mask, (mask.midx * 2.,0.))));
+                    points.push(itransform(&transform, ftransform(mask, (mask.midx * 2.,mask.midy * 2.))));
+                    points.push(itransform(&transform, ftransform(mask, (0.,mask.midy  * 2.))));
+                    points.push(itransform(&transform, ftransform(mask, (0.,0.))));
+                    points.push(ret_location.clone());
+                }
                 let index = self.scene_graph.arrangement.get_mut().defs.clipPath.len();
                 let id = format!("{}", index);
                 clip_mask = "url(#".to_string() + &id + ")";

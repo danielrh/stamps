@@ -27,6 +27,26 @@ fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
     }
 }
 
+pub fn ftransform(t:&Transform, p: F64Point) -> F64Point {
+    let centered = (p.0 - t.midx, p.1 - t.midy);
+    let rotate_rad = -t.rotate * std::f64::consts::PI/180.;
+    let rotated = (centered.0 * rotate_rad.cos() + centered.1 * rotate_rad.sin(),
+                   -centered.0 * rotate_rad.sin() + centered.1 * rotate_rad.cos());
+    let scaled = (rotated.0 * t.scale, rotated.1 * t.scale);
+    let recentered = (scaled.0 + t.midx, scaled.1 + t.midy);
+    (recentered.0 + t.tx, recentered.1 + t.ty)
+}
+
+pub fn itransform(t:&Transform, p: F64Point) -> F64Point {
+    let untranslated = (p.0 - t.tx, p.1 - t.ty);
+    let recentered = (untranslated.0 - t.midx, untranslated.1 - t.midy);
+    let unscaled = (recentered.0/t.scale, recentered.1/t.scale);
+    let rotate_rad = t.rotate * std::f64::consts::PI/180.;
+    let rotated = (unscaled.0 * rotate_rad.cos() + unscaled.1 * rotate_rad.sin(),
+                   -unscaled.0 * rotate_rad.sin() + unscaled.1 * rotate_rad.cos());
+    let centered = (rotated.0 + t.midx, rotated.1 + t.midy);
+    centered
+}
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
@@ -566,5 +586,78 @@ mod test {
   fn test_regex() {
     let tform: regex::Regex = regex::Regex::new(super::TFORM_REGEX_STR).unwrap();
     tform.captures("translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)").unwrap();
+  }
+    fn _approx_eq(l: F64Point, r: F64Point) -> bool {
+        let diff0 = if l.0 > r.0 {
+            l.0 - r.0 
+        }else {
+            r.0 - l.0
+        };
+        let diff1 = if l.1 > r.1 {
+            l.1 - r.1
+        }else {
+            r.1 - l.1
+        };
+        diff0 < 0.0001 && diff1 < 0.0001
+    }
+  macro_rules! assert_approx_eq {
+      ($left: expr, $right: expr) => (
+          if _approx_eq($left, $right) == false {assert_eq!($left, $right)} else {()}
+      );
+  }
+  #[test]
+    fn test_transform() {
+        use super::ftransform;
+        use super::itransform;
+        use super::Transform;
+        assert_eq!(ftransform(&Transform::new(1,1), (10.,10.)), (10., 10.));
+        assert_eq!(itransform(&Transform::new(1,1), (10.,10.)), (10., 10.));
+        let mut transf = Transform::new(1,1);
+        let xstart = (10.5,0.5);
+        let ystart = (0.5,10.5);
+        transf.rotate = 90.;
+        let rot90 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot90, (-9.5, 0.5));
+        assert_approx_eq!(itransform(&transf, rot90), ystart);
+        transf.rotate = 180.;
+        let rot180 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot180, (0.5, -9.5));
+        assert_approx_eq!(itransform(&transf, rot180), ystart);
+        transf.rotate = 60.;
+        let rot60 = ftransform(&transf, xstart);
+        assert_approx_eq!(rot60, (5.5, 9.16025));
+        assert_approx_eq!(itransform(&transf, rot60), xstart);
+
+        transf.rotate = 90.;
+        transf.tx = 4.;
+        transf.ty = 5.;
+        let rot90 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot90, (-5.5, 5.5));
+        assert_approx_eq!(itransform(&transf, rot90), ystart);
+        transf.rotate = 180.;
+        let rot180 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot180, (4.5, -4.5));
+        assert_approx_eq!(itransform(&transf, rot180), ystart);
+        transf.rotate = 60.;
+        let rot60 = ftransform(&transf, xstart);
+        assert_approx_eq!(rot60, (9.5, 14.16025));
+        assert_approx_eq!(itransform(&transf, rot60), xstart);
+
+        transf.rotate = 90.;
+        transf.tx = 4.;
+        transf.ty = 5.;
+        transf.scale=2.;
+        let rot90 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot90, (-15.5, 5.5));
+        assert_approx_eq!(itransform(&transf, rot90), ystart);
+        transf.rotate = 180.;
+        let rot180 = ftransform(&transf, ystart);
+        assert_approx_eq!(rot180, (4.5, -14.5));
+        assert_approx_eq!(itransform(&transf, rot180), ystart);
+        transf.rotate = 60.;
+        let rot60 = ftransform(&transf, xstart);
+        assert_approx_eq!(rot60, (14.5, 22.8205));
+        assert_approx_eq!(itransform(&transf, rot60), xstart);
+
   }
 }
