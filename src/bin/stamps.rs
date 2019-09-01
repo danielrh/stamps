@@ -28,6 +28,20 @@ struct TextureSurface<'r> {
     surface: Surface<'r>,
     name: String,
 }
+fn constrain_mask_transform(t: &mut stamps::Transform, width: u32, height: u32) {
+    if t.tx > width as f64 {
+        t.tx = width as f64;
+    }
+    if t.ty > height as f64 {
+        t.ty = height as f64;
+    }
+    if t.tx + 2. * t.midx < 0.0 {
+        t.tx = -2.  * t.midx;
+    }
+    if t.ty + 2. * t.midy < 0.0 {
+        t.ty = -2. * t.midy;
+    }
+}
 macro_rules! make_texture_surface {
     ($texture_creator: expr, $surf: expr, $name: expr) => (match $texture_creator.create_texture_from_surface(&$surf) {
         Ok(tex) => Ok(TextureSurface{
@@ -209,6 +223,7 @@ impl SceneGraph {
 }
 
 struct Images<'r> {
+    mask: TextureSurface<'r>,
     default_cursor: TextureSurface<'r>,
     stamps: Vec<TextureSurface<'r>>,
     max_selectable_stamp: usize,
@@ -224,11 +239,14 @@ struct CursorTransform {
 struct SceneState{
     scene_graph: SceneGraph,
     cursor_transform: CursorTransform,
+    mask_transforms: [stamps::Transform;2],
     last_return_mouse: Option<CursorTransform>,
     cursor: Cursor,
     active_stamp: Option<usize>,
     stamp_used: bool,
     save_file_name: String,
+    window_width: u32,
+    window_height: u32,
 }
 
 impl SceneState {
@@ -311,6 +329,17 @@ impl SceneState {
                 false,//vert
             ).map_err(|err| format!("{:?}", err))?;
         }
+        for mask in self.mask_transforms.iter() {
+            canvas.copy_ex(
+                &images.mask.texture,
+                None,
+                    Some(Rect::new(mask.tx as i32, mask.ty as i32, (2.0 * mask.midx) as u32, (2.0 * mask.midy) as u32)),
+                    mask.rotate,
+                    Point::new(mask.midx as i32, mask.midy as i32),
+                    false,
+                    false,
+                ).map_err(|err| format!("{:?}", err))?;
+        }
         canvas.present();
         Ok(())
     }
@@ -318,7 +347,6 @@ impl SceneState {
         if keys_down.contains_key(&Keycode::Left) {
             self.cursor_transform.mouse_x -= MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
-
         }
         if keys_down.contains_key(&Keycode::Right) {
             self.cursor_transform.mouse_x += MOUSE_CONSTANT;
@@ -332,10 +360,35 @@ impl SceneState {
             self.cursor_transform.mouse_y += MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
-        if keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
+        let shifted_index = (keys_down.contains_key(&Keycode::LShift) as usize) | (keys_down.contains_key(&Keycode::RShift) as usize);
+        if keys_down.contains_key(&Keycode::I) {
+            self.mask_transforms[shifted_index].ty -= MOUSE_CONSTANT as f64;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if keys_down.contains_key(&Keycode::J) {
+            self.mask_transforms[shifted_index].tx -= MOUSE_CONSTANT as f64;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if keys_down.contains_key(&Keycode::K) {
+            self.mask_transforms[shifted_index].ty += MOUSE_CONSTANT as f64;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if keys_down.contains_key(&Keycode::L) {
+            self.mask_transforms[shifted_index].tx += MOUSE_CONSTANT as f64;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if /*keys_down.contains_key(&Keycode::LParen) ||*/ keys_down.contains_key(&Keycode::U) {
+            self.mask_transforms[shifted_index].rotate -= ROT_CONSTANT / 2.0;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if /*keys_down.contains_key(&Keycode::RParen) ||*/ keys_down.contains_key(&Keycode::O) {
+            self.mask_transforms[shifted_index].rotate += ROT_CONSTANT/ 2.0;
+            constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
+        }
+        if keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
             self.cursor_transform.transform.rotate += ROT_CONSTANT;
         }
-        if keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
+        if keys_down.contains_key(&Keycode::Comma) || keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
             self.cursor_transform.transform.rotate -= ROT_CONSTANT;
         }
         if keys_down.contains_key(&Keycode::KpEnter) {
@@ -423,9 +476,13 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
             state.clear_cursor_if_stamp_used();
         }
         Event::Window{win_event:sdl2::event::WindowEvent::Resized(width,height),..} => {
+          state.window_width = width as u32;
+          state.window_height = height as u32;
           state.compute_stamps_location(Rect::new(0,0,width as u32,height as u32), images);
         }
         Event::Window{win_event:sdl2::event::WindowEvent::SizeChanged(width,height),..} => {
+          state.window_width = width as u32;
+          state.window_height = height as u32;
           state.compute_stamps_location(Rect::new(0,0,width as u32,height as u32), images);
         }
         _ => {}
@@ -461,6 +518,10 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let surface = Surface::from_file(dir.join("cursor.png"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     svg.resize(wsize.0, wsize.1);
+    let mask_surface_path = dir.join("mask.png");
+    let mask_surface_name = mask_surface_path.to_str().unwrap().to_string();
+    let mask_surface = Surface::from_file(mask_surface_path)
+        .map_err(|err| format!("Failed to load mask paper image: {}", err))?;
     let mut scene_state = SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
@@ -472,6 +533,10 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             mouse_y:0,
             transform: stamps::Transform::new(0,0),
         },
+        mask_transforms: [
+            stamps::Transform::new(mask_surface.width(), mask_surface.height()),
+            stamps::Transform::new(mask_surface.width(), mask_surface.height()),
+            ],
         last_return_mouse: None,
         active_stamp: None,
         stamp_used: false,
@@ -479,13 +544,18 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
         save_file_name: save_file_name.to_string(),
+        window_width: canvas.viewport().width(),
+        window_height: canvas.viewport().height(),
     };
+    scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
+    scene_state.mask_transforms[1].tx = canvas.viewport().width() as f64 - 10.0;
     let cursor_surface_path = dir.join("cursor.png");
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
     let cursor_surface = Surface::from_file(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let texture_creator = canvas.texture_creator();
     let mut images = Images{
+        mask:make_texture_surface!(texture_creator, mask_surface, mask_surface_name)?,
         default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
         stamps:Vec::new(),
         max_selectable_stamp:0,
