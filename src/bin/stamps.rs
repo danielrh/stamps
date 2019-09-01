@@ -136,13 +136,14 @@ impl SceneGraph {
               }
               let pitch = dst_surface.pitch();
               let polygon_points = &polygon.points;
-              polygon_intercepts.resize(polygon_points.len(), 0);
+              polygon_intercepts.resize(polygon_points.len() + 2, 0);
               let last_point_index = polygon_points.len().wrapping_sub(1);
               dst_surface.with_lock_mut(|data:&mut[u8]| {
                   // rasterize our friend the clip polygon
                   for y in 0..height {
                       let y_byte_offset = y as usize * pitch as usize;
-                      let mut num_intercepts = 0;
+                      polygon_intercepts[0] = std::i32::MIN; // clear the opposite of clip mask
+                      let mut num_intercepts = 1;
                       for (index, point0) in polygon_points.iter().enumerate() {
                           let prev_point_index = if index == 0 {
                               last_point_index
