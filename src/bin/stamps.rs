@@ -97,8 +97,8 @@ impl SceneGraph {
     }
    None
   }
-  fn prepare_textures<T:sdl2::render::RenderTarget>(
-        &mut self, canvas: &mut sdl2::render::Canvas<T>,images: &mut Images) -> Result<(), String> {
+  fn prepare_textures<'a>(
+        &mut self, texture_creator: &'a sdl2::render::TextureCreator<sdl2::video::WindowContext>,images: &mut Images<'a>) -> Result<(), String> {
       if !self.arrangement.dirty {
           return Ok(());
       }
@@ -115,11 +115,14 @@ impl SceneGraph {
               let mut dst_surface: Surface;
               let width;
               let height;
+              let name;
               if let Some(img) = self.inventory_map.get(&HrefAndClipMask{
                   url:g.image.href.url.clone(),
                   clip:String::new(),
               }) {
-                  let src_surface = &images.stamps[*img].surface;
+                  let img_texture = &images.stamps[*img];
+                  let src_surface = &img_texture.surface;
+                  name = img_texture.name.clone();
                   width = src_surface.width();
                   height = src_surface.height();
                   dst_surface = Surface::new(width, height, PixelFormatEnum::RGBA8888)?;
@@ -188,9 +191,18 @@ impl SceneGraph {
                           }
                       }
                   }
-              })
+              });
+              let new_index = images.stamps.len();
+              images.stamps.push(make_texture_surface!(texture_creator, dst_surface, name)?);
+              eprintln!("Making texture surface {:?} {}\n", g.image.href.clone(), new_index);
+              self.inventory_map.insert(
+                  g.image.href.clone(),
+                   new_index,
+                  );
+                   
           }
       }
+      self.arrangement.dirty = false;
       Ok(())
   }
 }
@@ -495,12 +507,13 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             for event in events.poll_iter() {
                 process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
             }
-            scene_state.scene_graph.prepare_textures(&mut canvas, &mut images)?;
+            scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
             scene_state.render(&mut canvas, &images)?;
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
                 std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);
                 scene_state.apply_keys(&keys_down, None, true);
+                scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
                 scene_state.render(&mut canvas, &mut images)?;
             }
         } else {
@@ -511,6 +524,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             for event in events.poll_iter() {
                 process(&mut scene_state, &mut images, event, &mut keys_down)?;
             }
+            scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
             scene_state.render(&mut canvas, &mut images)?;
         };
     }

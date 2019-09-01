@@ -29,7 +29,7 @@ fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
 
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct HrefAndClipMask {
     pub url: String,
     pub clip: String,
