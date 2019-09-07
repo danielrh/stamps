@@ -19,7 +19,9 @@ use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
-static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(4);
+static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(8);
+static START_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(200);
+static DELTA_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(30);
 
 const MOUSE_CONSTANT: i32 = 1;
 const ROT_CONSTANT: f64 = 1.0;
@@ -598,6 +600,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let cursor_surface = Surface::from_file(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let texture_creator = canvas.texture_creator();
+    
     let mut images = Images{
         mask:make_texture_surface!(texture_creator, mask_surface, mask_surface_name)?,
         default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
@@ -615,6 +618,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
+    let mut duration_per_frame = START_DURATION_PER_FRAME;
     'mainloop: loop {
         let loop_start_time = time::Instant::now();
         let mut events = sdl_context.event_pump()?;
@@ -625,13 +629,22 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
             scene_state.render(&mut canvas, &images)?;
             let process_time = loop_start_time.elapsed();
-            if keys_down.len() != 0 && process_time < DESIRED_DURATION_PER_FRAME {
-                std::thread::sleep(DESIRED_DURATION_PER_FRAME - process_time);
+            if keys_down.len() != 0 && process_time < duration_per_frame {
+                std::thread::sleep(duration_per_frame - process_time);
+                if duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
+                    duration_per_frame -= DELTA_DURATION_PER_FRAME;
+                } else {
+                    duration_per_frame = DESIRED_DURATION_PER_FRAME;
+                }
+                for event in events.poll_iter() {
+                    process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
+                }
                 scene_state.apply_keys(&keys_down, None, true);
                 scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
                 scene_state.render(&mut canvas, &mut images)?;
             }
         } else {
+            duration_per_frame = START_DURATION_PER_FRAME;
             for event in events.wait_iter() {
                 process(&mut scene_state, &mut images, event, &mut keys_down)?;
                 break;
