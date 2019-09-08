@@ -48,6 +48,18 @@ pub fn itransform(t:&Transform, p: F64Point) -> F64Point {
     centered
 }
 
+pub fn compose(t:&Transform, u:&Transform) -> Transform {
+    let txty = ftransform(t, (u.tx, u.ty));
+    Transform{
+        tx: txty.0,
+        ty: txty.1,
+        midx: u.midx,
+        midy: u.midy,
+        rotate: t.rotate + u.rotate,
+        scale: t.scale * u.scale,
+    }
+}
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
 pub struct HrefAndClipMask {

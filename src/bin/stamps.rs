@@ -19,9 +19,10 @@ use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
-static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(8);
+static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(2);
 static START_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(200);
-static DELTA_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(30);
+static RELAXED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(400);
+static DELTA_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(75);
 
 const MOUSE_CONSTANT: i32 = 1;
 const ROT_CONSTANT: f64 = 1.0;
@@ -102,6 +103,37 @@ impl Arrangement {
         &self.svg
     }
 }
+
+fn round_up_to_golden(angle: f64) -> f64 {
+    let mut iangle = ((angle % 360.) as i32) / 15;
+    iangle += if iangle % 6 == 0 || iangle % 6 == 4 {
+        2
+    } else {
+        1
+    };
+    iangle *= 15;
+    if iangle < 0 {
+        iangle += 360;
+    }
+    if iangle >= 360 {
+        iangle -= 360;
+    }
+    iangle as f64
+}
+fn round_down_to_golden(angle: f64) -> f64 {
+    let mut iangle = ((angle % 360.) as i32) / 15;
+    iangle -= if iangle % 6 == 0 || iangle % 6 == 2 {
+        2
+    } else {
+        1
+    };
+    iangle *- 15;
+    if iangle < 0 {
+        iangle += 360;
+    }
+    iangle as f64
+}
+
 struct SceneGraph {
     inventory: Vec<InventoryItem>,
     inventory_map: HashMap<HrefAndClipMask, usize>,
@@ -245,11 +277,13 @@ struct CursorTransform {
 struct SceneState{
     scene_graph: SceneGraph,
     cursor_transform: CursorTransform,
+    duration_per_frame: time::Duration, // how long to wait while key is held down
     mask_transforms: [stamps::Transform;2],
     last_return_mouse: Option<CursorTransform>,
     cursor: Cursor,
     active_stamp: Option<usize>,
     stamp_used: bool,
+    camera_transform: stamps::Transform,
     save_file_name: String,
     window_width: u32,
     window_height: u32,
@@ -282,13 +316,14 @@ impl SceneState {
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
         for g in self.scene_graph.arrangement.get().stamps.iter() {
             if let Some(index) = self.scene_graph.inventory_map.get(&g.image.href) {
+                let final_transform = stamps::compose(&self.camera_transform, &g.transform);
                 let img = &images.stamps[*index];
                 canvas.copy_ex(
                     &img.texture,
                     None,
-                    Some(Rect::new(g.transform.tx as i32, g.transform.ty as i32, g.image.width, g.image.height)),
-                    g.transform.rotate,
-                    Point::new(g.transform.midx as i32, g.transform.midy as i32),
+                    Some(Rect::new(final_transform.tx as i32, final_transform.ty as i32, g.image.width, g.image.height)),
+                    final_transform.rotate,
+                    Point::new(final_transform.midx as i32, final_transform.midy as i32),
                     false,
                     false,
                 ).map_err(|err| format!("{:?}", err))?;
@@ -336,12 +371,13 @@ impl SceneState {
             ).map_err(|err| format!("{:?}", err))?;
         }
         for mask in self.mask_transforms.iter() {
+            let final_mask_transform = stamps::compose(&self.camera_transform, mask);
             canvas.copy_ex(
                 &images.mask.texture,
                 None,
-                    Some(Rect::new(mask.tx as i32, mask.ty as i32, (2.0 * mask.midx) as u32, (2.0 * mask.midy) as u32)),
-                    mask.rotate,
-                    Point::new(mask.midx as i32, mask.midy as i32),
+                    Some(Rect::new(final_mask_transform.tx as i32, final_mask_transform.ty as i32, (2.0 * final_mask_transform.midx) as u32, (2.0 * final_mask_transform.midy) as u32)),
+                    final_mask_transform.rotate,
+                    Point::new(final_mask_transform.midx as i32, final_mask_transform.midy as i32),
                     false,
                     false,
                 ).map_err(|err| format!("{:?}", err))?;
@@ -350,6 +386,10 @@ impl SceneState {
         Ok(())
     }
     fn apply_keys(&mut self, keys_down: &HashMap<Keycode, ()>, new_key: Option<Keycode>, repeat:bool) {
+        if keys_down.len() != 0{
+            //eprintln!("KEY PRESS {:?}; REPEAT {} {:?}?", keys_down, repeat, new_key);
+        }
+        let shifted_index = (keys_down.contains_key(&Keycode::LShift) as usize) | (keys_down.contains_key(&Keycode::RShift) as usize);
         if keys_down.contains_key(&Keycode::Left) {
             self.cursor_transform.mouse_x -= MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
@@ -366,9 +406,39 @@ impl SceneState {
             self.cursor_transform.mouse_y += MOUSE_CONSTANT;
             self.clear_cursor_if_stamp_used();
         }
-        let shifted_index = (keys_down.contains_key(&Keycode::LShift) as usize) | (keys_down.contains_key(&Keycode::RShift) as usize);
+        if keys_down.contains_key(&Keycode::W) {
+            self.camera_transform.ty += MOUSE_CONSTANT as f64;
+        }
+        if keys_down.contains_key(&Keycode::A) {
+            self.camera_transform.tx -= MOUSE_CONSTANT as f64;
+        }
+        if keys_down.contains_key(&Keycode::S) {
+            self.camera_transform.ty -= MOUSE_CONSTANT as f64;
+        }
+        if keys_down.contains_key(&Keycode::D) {
+            self.camera_transform.tx += MOUSE_CONSTANT as f64;
+        }/*
+        if keys_down.contains_key(&Keycode::Q) {
+            self.camera_transform.scale /= 1.03125 / 4.;
+        }
+        if keys_down.contains_key(&Keycode::E) {
+            self.camera_transform.scale *= 1.03125 / 4.;
+        }*/
         if keys_down.contains_key(&Keycode::I) {
             self.mask_transforms[shifted_index].ty -= MOUSE_CONSTANT as f64;
+    /*        if self.mask_transforms[shifted_index].ty < 0.0 {
+                let adjust = -self.mask_transforms[shifted_index].ty;
+                self.mask_transforms[shifted_index].ty < 0.0; // shift the whole artwork down
+                self.camera_transform.ty += adjust;
+                for (mask_index, mask) in self.mask_transforms.iter_mut().enumerate() {
+                    if mask_index != shifted_index {
+                        mask.ty += adjust;
+                    }
+                }
+                for g in self.scene_graph.arrangement.get_mut().stamps.iter_mut() {
+                    g.transform.ty += adjust;
+                }
+            }*/
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if keys_down.contains_key(&Keycode::J) {
@@ -384,20 +454,34 @@ impl SceneState {
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if /*keys_down.contains_key(&Keycode::LParen) ||*/ keys_down.contains_key(&Keycode::U) {
-            self.mask_transforms[shifted_index].rotate -= ROT_CONSTANT / 2.0;
+            self.mask_transforms[shifted_index].rotate -= ROT_CONSTANT;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if /*keys_down.contains_key(&Keycode::RParen) ||*/ keys_down.contains_key(&Keycode::O) {
-            self.mask_transforms[shifted_index].rotate += ROT_CONSTANT/ 2.0;
+            self.mask_transforms[shifted_index].rotate += ROT_CONSTANT;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
-            self.cursor_transform.transform.rotate += ROT_CONSTANT;
+            if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
+                if !repeat {
+                    self.duration_per_frame = RELAXED_DURATION_PER_FRAME;
+                    self.cursor_transform.transform.rotate = round_up_to_golden(self.cursor_transform.transform.rotate)
+                }
+            } else {
+                self.cursor_transform.transform.rotate += ROT_CONSTANT;
+            }
         }
         if keys_down.contains_key(&Keycode::Comma) || keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
-            self.cursor_transform.transform.rotate -= ROT_CONSTANT;
+            if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
+                if !repeat{
+                    self.duration_per_frame = RELAXED_DURATION_PER_FRAME;
+                    self.cursor_transform.transform.rotate = round_down_to_golden(self.cursor_transform.transform.rotate)
+                }
+            } else {
+                self.cursor_transform.transform.rotate -= ROT_CONSTANT;
+            }
         }
-        if keys_down.contains_key(&Keycode::KpEnter) {
+        if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::Space) {
             if let Some(last_transform) = &self.last_return_mouse {
                 if *last_transform != self.cursor_transform || !repeat {
                     self.click();
@@ -424,8 +508,9 @@ impl SceneState {
                                                                      hit.stamp_source.height());
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
             let mut transform = self.cursor_transform.transform.clone();
-            transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx;
-            transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy;
+            transform.rotate -= self.camera_transform.rotate;
+            transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx - self.camera_transform.tx;
+            transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy - self.camera_transform.ty;
             let mut new_item_url = self.scene_graph.inventory[active_stamp].stamp_name.clone();
             // add clip mask
             let mut any_intersect = false;
@@ -502,6 +587,8 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
                 }
             } else {
                 repeat = true;
+                //eprintln!("EXTRA?");
+                return Ok(false);
             }
             key_encountered = true;
             state.apply_keys(&keys_down, Some(key_code), repeat);
@@ -582,11 +669,12 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         mask_transforms: [
             stamps::Transform::new(mask_surface.width(), mask_surface.height()),
             stamps::Transform::new(mask_surface.width(), mask_surface.height()),
-            ],
+        ],
+        duration_per_frame:START_DURATION_PER_FRAME,
         last_return_mouse: None,
         active_stamp: None,
         stamp_used: false,
-        
+        camera_transform: stamps::Transform::new(0, 0),
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
         save_file_name: save_file_name.to_string(),
@@ -594,7 +682,8 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         window_height: canvas.viewport().height(),
     };
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
-    scene_state.mask_transforms[1].tx = canvas.viewport().width() as f64 - 10.0;
+    scene_state.mask_transforms[1].tx = 0.0;
+    scene_state.mask_transforms[1].ty = 10.0 - scene_state.mask_transforms[0].midy * 2.0;
     let cursor_surface_path = dir.join("cursor.png");
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
     let cursor_surface = Surface::from_file(cursor_surface_path)
@@ -618,7 +707,6 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
-    let mut duration_per_frame = START_DURATION_PER_FRAME;
     'mainloop: loop {
         let loop_start_time = time::Instant::now();
         let mut events = sdl_context.event_pump()?;
@@ -629,12 +717,14 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
             scene_state.render(&mut canvas, &images)?;
             let process_time = loop_start_time.elapsed();
-            if keys_down.len() != 0 && process_time < duration_per_frame {
-                std::thread::sleep(duration_per_frame - process_time);
-                if duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
-                    duration_per_frame -= DELTA_DURATION_PER_FRAME;
+            if keys_down.len() != 0 {
+                if process_time < scene_state.duration_per_frame {
+                    std::thread::sleep(scene_state.duration_per_frame - process_time);
+                }
+                if scene_state.duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
+                    scene_state.duration_per_frame -= DELTA_DURATION_PER_FRAME;
                 } else {
-                    duration_per_frame = DESIRED_DURATION_PER_FRAME;
+                    scene_state.duration_per_frame = DESIRED_DURATION_PER_FRAME;
                 }
                 for event in events.poll_iter() {
                     process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
@@ -644,7 +734,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
                 scene_state.render(&mut canvas, &mut images)?;
             }
         } else {
-            duration_per_frame = START_DURATION_PER_FRAME;
+            scene_state.duration_per_frame = START_DURATION_PER_FRAME;
             for event in events.wait_iter() {
                 process(&mut scene_state, &mut images, event, &mut keys_down)?;
                 break;
