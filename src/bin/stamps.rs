@@ -128,7 +128,7 @@ fn round_down_to_golden(angle: f64) -> f64 {
     } else {
         1
     };
-    iangle *- 15;
+    iangle *= 15;
     if iangle < 0 {
         iangle += 360;
     }
