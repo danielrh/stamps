@@ -744,18 +744,24 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             }
             scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
             scene_state.render(&mut canvas, &images)?;
-            let process_time = loop_start_time.elapsed();
+            let mut process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 {
-                if has_repeatable_keys(&keys_down) && process_time < scene_state.duration_per_frame {
-                    std::thread::sleep(scene_state.duration_per_frame - process_time);
+                while process_time < scene_state.duration_per_frame {
+                    process_time = loop_start_time.elapsed();
+                    let mut any_events = false;
+                    for event in events.poll_iter() {
+                        process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
+                        any_events = true;
+                    }
+                    if any_events {
+                        scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
+                        scene_state.render(&mut canvas, &mut images)?;
+                    }
                 }
                 if scene_state.duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
                     scene_state.duration_per_frame -= DELTA_DURATION_PER_FRAME;
                 } else {
                     scene_state.duration_per_frame = DESIRED_DURATION_PER_FRAME;
-                }
-                for event in events.poll_iter() {
-                    process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
                 }
                 scene_state.apply_keys(&keys_down, None, true);
                 scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
@@ -775,21 +781,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         };
     }
 }
-#[allow(unreachable_code)]
-fn has_repeatable_keys(keys_down: &HashMap<Keycode, ()>) -> bool {
-    return !(keys_down.contains_key(&Keycode::Return) || keys_down.contains_key(&Keycode::Space) || keys_down.contains_key(&Keycode::Backspace));
-    // I'm  not sure why this function has such an ill effect on input
-    return keys_down.len() != 0;
-    if keys_down.len() == 1 && (keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift)) {
-        return false;
-    }
-    if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::KpSpace) ||
-        ((keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) &&
-          (keys_down.contains_key(&Keycode::Comma) || keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete)) || keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert))) {
-          return false
-    }
-    true
-}
+
 fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
     let mut f = fs::File::create(filename)?;
     f.write(s.as_bytes())?;
