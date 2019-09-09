@@ -21,7 +21,7 @@ use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(2);
 static START_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(200);
-static RELAXED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(400);
+static RELAXED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
 static DELTA_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(75);
 
 const MOUSE_CONSTANT: i32 = 1;
@@ -31,6 +31,7 @@ struct TextureSurface<'r> {
     surface: Surface<'r>,
     name: String,
 }
+
 
 fn box_intersect (t0: &stamps::Transform, t1: &stamps::Transform) -> bool {
     stamps::poly_edge_intersect(&t0.to_bbox(), &t1.to_bbox())
@@ -418,7 +419,15 @@ impl SceneState {
         }
         if keys_down.contains_key(&Keycode::D) {
             self.camera_transform.tx += MOUSE_CONSTANT as f64;
-        }/*
+        }
+        if keys_down.contains_key(&Keycode::Escape) {
+            write_from_string(Path::new(&self.save_file_name),
+                              &self.scene_graph.arrangement.get().to_string().map_err(
+                                  |err| format!("{:?}", err)).unwrap()).map_err(
+                |err| format!("{:?}", err)).unwrap();
+            std::process::exit(0);
+        }
+        /*
         if keys_down.contains_key(&Keycode::Q) {
             self.camera_transform.scale /= 1.03125 / 4.;
         }
@@ -495,7 +504,7 @@ impl SceneState {
                 self.cursor_transform.transform.rotate -= ROT_CONSTANT;
             }
         }
-        if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::Space) {
+        if keys_down.contains_key(&Keycode::KpEnter) {
             if let Some(last_transform) = &self.last_return_mouse {
                 if *last_transform != self.cursor_transform || !repeat {
                     self.click();
@@ -508,6 +517,11 @@ impl SceneState {
             self.last_return_mouse = None; // other keypresses clear this
         }
         if let Some(Keycode::Return) = new_key {
+            if !repeat {
+                self.click();
+            }
+        }
+        if let Some(Keycode::Space) = new_key {
             if !repeat {
                 self.click();
             }
@@ -525,7 +539,7 @@ impl SceneState {
             transform.rotate -= self.camera_transform.rotate;
             transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx - self.camera_transform.tx;
             transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy - self.camera_transform.ty;
-            let mut new_item_url = self.scene_graph.inventory[active_stamp].stamp_name.clone();
+            let new_item_url = self.scene_graph.inventory[active_stamp].stamp_name.clone();
             // add clip mask
             let mut any_intersect = false;
             for mask in self.mask_transforms.iter() {
@@ -595,13 +609,12 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
         },
         Event::KeyDown {keycode: Option::Some(key_code), ..} =>{
             let repeat;
-            if let None = keys_down.insert(key_code, ()) {
+             if let None = keys_down.insert(key_code, ()) {
                 repeat = false;
                 for (key,_)in keys_down.iter() {
                     eprintln!("Key is down {}\n", *key)
                 }
             } else {
-                repeat = true;
                 //eprintln!("EXTRA?");
                 return Ok(false);
             }
@@ -733,7 +746,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
             scene_state.render(&mut canvas, &images)?;
             let process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 {
-                if process_time < scene_state.duration_per_frame {
+                if has_repeatable_keys(&keys_down) && process_time < scene_state.duration_per_frame {
                     std::thread::sleep(scene_state.duration_per_frame - process_time);
                 }
                 if scene_state.duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
@@ -762,7 +775,21 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         };
     }
 }
-
+#[allow(unreachable_code)]
+fn has_repeatable_keys(keys_down: &HashMap<Keycode, ()>) -> bool {
+    return !(keys_down.contains_key(&Keycode::Return) || keys_down.contains_key(&Keycode::Space) || keys_down.contains_key(&Keycode::Backspace));
+    // I'm  not sure why this function has such an ill effect on input
+    return keys_down.len() != 0;
+    if keys_down.len() == 1 && (keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift)) {
+        return false;
+    }
+    if keys_down.contains_key(&Keycode::KpEnter) || keys_down.contains_key(&Keycode::KpSpace) ||
+        ((keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) &&
+          (keys_down.contains_key(&Keycode::Comma) || keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete)) || keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert))) {
+          return false
+    }
+    true
+}
 fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
     let mut f = fs::File::create(filename)?;
     f.write(s.as_bytes())?;
