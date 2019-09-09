@@ -33,7 +33,7 @@ struct TextureSurface<'r> {
 }
 
 fn box_intersect (t0: &stamps::Transform, t1: &stamps::Transform) -> bool {
-    true
+    stamps::poly_edge_intersect(&t0.to_bbox(), &t1.to_bbox())
 }
 fn constrain_mask_transform(t: &mut stamps::Transform, width: u32, height: u32) {
     if t.tx > width as f64 {

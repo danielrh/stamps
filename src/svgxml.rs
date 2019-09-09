@@ -48,6 +48,35 @@ pub fn itransform(t:&Transform, p: F64Point) -> F64Point {
     centered
 }
 
+
+fn poly_helper(a: &[F64Point], b:&[F64Point]) -> bool {
+    for (i1, p0) in a.iter().enumerate() {
+        let p1 = a[(i1 + 1) % a.len()];
+        let perp = (p1.1 - p0.1, p0.0 - p1.0);
+        let mut min_a: Option<f64> = None;
+        let mut max_a: Option<f64> = None;
+        let mut min_b: Option<f64> = None;
+        let mut max_b: Option<f64> = None;
+        for a_pnt in a {
+            let proj = perp.0 * a_pnt.0 + perp.1 * a_pnt.1;
+            min_a = Some(min_a.unwrap_or(proj).min(proj));
+            max_a = Some(max_a.unwrap_or(proj).max(proj));
+        }
+        for b_pnt in b {
+            let proj = perp.0 * b_pnt.0 + perp.1 * b_pnt.1;
+            min_b = Some(min_b.unwrap_or(proj).min(proj));
+            max_b = Some(max_b.unwrap_or(proj).max(proj));
+        }
+        if max_a < min_b || max_b < min_a {
+            return false;
+        }
+    }
+    true
+}
+pub fn poly_edge_intersect(a: &[F64Point], b:&[F64Point]) -> bool {
+    poly_helper(a, b) || poly_helper(b, a)
+}
+
 pub fn compose(t:&Transform, u:&Transform) -> Transform {
     let txty = ftransform(t, (u.tx, u.ty));
     Transform{
@@ -154,6 +183,13 @@ impl Transform {
           tx:0.0,
           ty:0.0,
       }
+  }
+  pub fn to_bbox(&self) -> [(f64,f64);4] {
+      [ftransform(self, (0.,0.)),
+       ftransform(self, (0., self.midy * 2.)),
+       ftransform(self, (self.midx * 2., self.midy * 2.)),
+       ftransform(self, (self.midx * 2., 0.)),
+       ]
   }
   fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
     let mut components = [String::new(),String::new(),String::new(),String::new(),String::new()];
