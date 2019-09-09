@@ -89,11 +89,12 @@ struct InventoryKey{
 }
 struct Arrangement{
     svg: stamps::SVG,
-    dirty: bool
+    dirty: bool,
+    undo: Vec<stamps::g>,
 }
 impl Arrangement {
     pub fn new(svg: stamps::SVG) -> Self {
-        Arrangement{svg:svg, dirty:true}
+        Arrangement{svg:svg, dirty:true, undo:Vec::new()}
     }
     pub fn get_mut(&mut self) -> &mut stamps::SVG {
         self.dirty = true;
@@ -461,6 +462,19 @@ impl SceneState {
             self.mask_transforms[shifted_index].rotate += ROT_CONSTANT;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
+        if keys_down.contains_key(&Keycode::Backspace) && !repeat {
+            if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
+                if self.scene_graph.arrangement.undo.len() != 0 {
+                    self.scene_graph.arrangement.svg.stamps.push(self.scene_graph.arrangement.undo.pop().unwrap());
+                    self.scene_graph.arrangement.dirty = true;
+                }
+            } else {
+                if self.scene_graph.arrangement.svg.stamps.len() != 0 {
+                    self.scene_graph.arrangement.undo.push(self.scene_graph.arrangement.svg.stamps.pop().unwrap());
+                    self.scene_graph.arrangement.dirty = true;
+                }
+            }
+        }
         if keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
             if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
                 if !repeat {
@@ -526,7 +540,8 @@ impl SceneState {
                 points.push((transform.midx * 4.,-transform.midy * 4.));
                 points.push((transform.midx * 4., transform.midy * 4.));
                 points.push((-transform.midx * 4., transform.midy * 4.));
-                let ret_location = (-transform.midx * 4.,-transform.midy * 4.);
+                points.push((-transform.midx * 4.,-transform.midy * 4.));
+               let ret_location = (-transform.midx * 4.,-transform.midy * 4.);
                 for mask in self.mask_transforms.iter() {
                     use stamps::ftransform;
                     use stamps::itransform;

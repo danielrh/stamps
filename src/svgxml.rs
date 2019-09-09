@@ -364,6 +364,7 @@ pub struct SVG {
     pub height: u32,
     #[serde(default)]
     pub defs: defs,
+    #[serde(default)]
     #[serde(rename="g")]
     pub stamps: Vec<g>,
 }
