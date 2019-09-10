@@ -1,0 +1,18 @@
+<svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="windows">
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <rect x="5" y="5" width="4" height="23.5" fill="black"/>
+      <rect x="5" y="34.5" width="4" height="23.5" fill="black"/>
+      <rect x="55" y="5" width="4" height="23.5" fill="black"/>
+      <rect x="55" y="34.5" width="4" height="23.5" fill="black"/>
+      <rect x="22" y="5" width="20" height="23.5" fill="black"/>
+      <rect x="22" y="34.5" width="20" height="23.5" fill="black"/>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon mask="url(#windows)" points="0 0,14 0,14 64,0 64"/>
+    <polygon mask="url(#windows)" points="17 0,47 0,47 64,17 64"/>
+    <polygon mask="url(#windows)" points="50 0,64 0,64 64,50 64"/>
+  </g>
+</svg>
