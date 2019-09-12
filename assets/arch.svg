@@ -1,16 +1,12 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="left">
+    <mask id="arch">
       <rect x="0" y="0" width="64" height="64" fill="white"/>
-      <ellipse cx="86" cy="62" rx="72" ry="72" fill="black"/>
-    </mask>
-    <mask id="right">
-      <rect x="0" y="0" width="64" height="64" fill="white"/>
-      <ellipse cx="-22" cy="62" rx="72" ry="72" fill="black"/>
+      <ellipse cx="32" cy="30" rx="18" ry="18" fill="black"/>
+      <rect x="14" y="30" width="36" height="36" fill="black"/>
     </mask>
   </defs>
-  <g transform="translate(0, 0)">
-    <polygon points="0 0,32 0,32 64,0 64" mask="url(#left)"/>
-    <polygon points="64 0,32 0,32 64,64 64" mask="url(#right)"/>
+  <g transform="translate(0, 0)" mask="url(#arch)">
+    <polygon points="0 0,64 0,64 64,0 64"/>
   </g>
 </svg>

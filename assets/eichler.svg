@@ -1,0 +1,16 @@
+<svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="windows">
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="22" cy="40" rx="4" ry="4" fill="black"/>
+      <rect x="18" y="40" width="8" height="16" fill="black"/>
+      <rect x="31" y="40" width="5" height="10" fill="black"/>
+      <rect x="40" y="40" width="5" height="10" fill="black"/>
+      <rect x="31" y="25" width="5" height="9" fill="black"/>
+      <rect x="40" y="25" width="5" height="9" fill="black"/>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon points="0 0,64 0,64 64,0 64" mask="url(#windows)"/>
+  </g>
+</svg>
