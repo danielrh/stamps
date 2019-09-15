@@ -90,6 +90,7 @@ struct InventoryItem {
     stamp_index: usize,
     stamp_source: Rect,
     stamp_name: String,
+    rot_delta: f64,
 }
 #[derive(Clone, Debug)]
 struct InventoryKey{
@@ -301,10 +302,15 @@ struct SceneState{
 
 impl SceneState {
   fn compute_stamps_location(&mut self, canvas_viewport: Rect, images: &Images) {
-    self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,stamp_source:canvas_viewport, stamp_name:String::new()});
+    self.scene_graph.inventory.resize(images.stamps.len(), InventoryItem{stamp_index:0,rot_delta:0.0,stamp_source:canvas_viewport, stamp_name:String::new()});
     let mut w_offset = 0i32;
     let mut h_offset = 0i32;
     let mut max_width = 0i32;
+      static ROT_DELTAS:&'static[(&'static str, f64)]= &[
+          ("rect", 90.0),
+          ("lhalframp", 90.0), ("lquartramp", 90.0),
+          ("rhalframp", -90.0), ("rquartramp", -90.0),
+      ];
     for (index, (stamp, inventory)) in images.stamps.iter().zip(self.scene_graph.inventory.iter_mut()).enumerate() {
       if h_offset + stamp.surface.height() as i32 > canvas_viewport.height() as i32 {
         h_offset = 0;
@@ -312,7 +318,12 @@ impl SceneState {
         max_width = 0;        
       }
       inventory.stamp_index = index;
-      inventory.stamp_name = stamp.name.clone();
+        inventory.stamp_name = stamp.name.clone();
+        for rot_delta in ROT_DELTAS {
+            if stamp.name.contains(rot_delta.0) {
+                inventory.rot_delta = rot_delta.1;
+            }
+        }
       inventory.stamp_source = Rect::new(w_offset, h_offset, stamp.surface.width(), stamp.surface.height());
       self.scene_graph.inventory_map.insert(HrefAndClipMask{url:inventory.stamp_name.clone(), clip:String::new()}, index);
       max_width = std::cmp::max(max_width, stamp.surface.width() as i32);
@@ -542,6 +553,7 @@ impl SceneState {
             self.stamp_used = false;
             self.cursor_transform.transform = stamps::Transform::new(hit.stamp_source.width(),
                                                                      hit.stamp_source.height());
+            self.cursor_transform.transform.rotate += hit.rot_delta;
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
             let mut transform = self.cursor_transform.transform.clone();
             transform.rotate -= self.camera_transform.rotate;
