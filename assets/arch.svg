@@ -1,9 +1,11 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="arch">
+      <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <ellipse cx="32" cy="30" rx="18" ry="18" fill="black"/>
       <rect x="14" y="30" width="36" height="36" fill="black"/>
+      </g>
     </mask>
   </defs>
   <g transform="translate(0, 0)" mask="url(#arch)">

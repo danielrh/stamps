@@ -19,7 +19,7 @@ use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
-static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(2);
+static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
 static START_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(200);
 static RELAXED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
 static DELTA_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(75);
@@ -30,6 +30,14 @@ struct TextureSurface<'r> {
     texture: Texture<'r>,
     surface: Surface<'r>,
     name: String,
+}
+
+fn mouse_move(delta:i32, repeat:time::Duration) -> i32 {
+    if repeat <= DESIRED_DURATION_PER_FRAME {
+        delta * 4
+    } else {
+        delta
+    }
 }
 
 
@@ -393,32 +401,32 @@ impl SceneState {
         }
         let shifted_index = (keys_down.contains_key(&Keycode::LShift) as usize) | (keys_down.contains_key(&Keycode::RShift) as usize);
         if keys_down.contains_key(&Keycode::Left) {
-            self.cursor_transform.mouse_x -= MOUSE_CONSTANT;
+            self.cursor_transform.mouse_x -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame);
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Right) {
-            self.cursor_transform.mouse_x += MOUSE_CONSTANT;
+            self.cursor_transform.mouse_x += mouse_move(MOUSE_CONSTANT, self.duration_per_frame);
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Up) {
-            self.cursor_transform.mouse_y -= MOUSE_CONSTANT;
+            self.cursor_transform.mouse_y -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame);
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::Down) {
-            self.cursor_transform.mouse_y += MOUSE_CONSTANT;
+            self.cursor_transform.mouse_y += mouse_move(MOUSE_CONSTANT, self.duration_per_frame);
             self.clear_cursor_if_stamp_used();
         }
         if keys_down.contains_key(&Keycode::W) {
-            self.camera_transform.ty += MOUSE_CONSTANT as f64;
+            self.camera_transform.ty += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
         }
         if keys_down.contains_key(&Keycode::A) {
-            self.camera_transform.tx -= MOUSE_CONSTANT as f64;
+            self.camera_transform.tx -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
         }
         if keys_down.contains_key(&Keycode::S) {
-            self.camera_transform.ty -= MOUSE_CONSTANT as f64;
+            self.camera_transform.ty -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
         }
         if keys_down.contains_key(&Keycode::D) {
-            self.camera_transform.tx += MOUSE_CONSTANT as f64;
+            self.camera_transform.tx += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
         }
         if keys_down.contains_key(&Keycode::Escape) {
             write_from_string(Path::new(&self.save_file_name),
@@ -435,7 +443,7 @@ impl SceneState {
             self.camera_transform.scale *= 1.03125 / 4.;
         }*/
         if keys_down.contains_key(&Keycode::I) {
-            self.mask_transforms[shifted_index].ty -= MOUSE_CONSTANT as f64;
+            self.mask_transforms[shifted_index].ty -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
     /*        if self.mask_transforms[shifted_index].ty < 0.0 {
                 let adjust = -self.mask_transforms[shifted_index].ty;
                 self.mask_transforms[shifted_index].ty < 0.0; // shift the whole artwork down
@@ -452,15 +460,15 @@ impl SceneState {
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if keys_down.contains_key(&Keycode::J) {
-            self.mask_transforms[shifted_index].tx -= MOUSE_CONSTANT as f64;
+            self.mask_transforms[shifted_index].tx -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if keys_down.contains_key(&Keycode::K) {
-            self.mask_transforms[shifted_index].ty += MOUSE_CONSTANT as f64;
+            self.mask_transforms[shifted_index].ty += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if keys_down.contains_key(&Keycode::L) {
-            self.mask_transforms[shifted_index].tx += MOUSE_CONSTANT as f64;
+            self.mask_transforms[shifted_index].tx += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
         if /*keys_down.contains_key(&Keycode::LParen) ||*/ keys_down.contains_key(&Keycode::U) {

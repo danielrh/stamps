@@ -1,6 +1,7 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="windows">
+      <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <rect x="5" y="5" width="4" height="23.5" fill="black"/>
       <rect x="5" y="34.5" width="4" height="23.5" fill="black"/>
@@ -8,6 +9,7 @@
       <rect x="55" y="34.5" width="4" height="23.5" fill="black"/>
       <rect x="22" y="5" width="20" height="23.5" fill="black"/>
       <rect x="22" y="34.5" width="20" height="23.5" fill="black"/>
+      </g>
     </mask>
   </defs>
   <g transform="translate(0, 0)">
