@@ -1,0 +1,13 @@
+<svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="arch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <rect x="27" y="21" width="11" height="22" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)" mask="url(#arch)">
+    <polygon points="0 0,64 0,64 64,0 64"/>
+  </g>
+</svg>
