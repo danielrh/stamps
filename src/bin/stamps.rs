@@ -308,6 +308,7 @@ impl SceneState {
     let mut max_width = 0i32;
       static ROT_DELTAS:&'static[(&'static str, f64)]= &[
           ("rect", 90.0),
+          ("pipe", 90.0),
           ("lhalframp", 90.0), ("lquartramp", 90.0),
           ("rhalframp", -90.0), ("rquartramp", -90.0),
       ];
