@@ -1,0 +1,15 @@
+<svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="arch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <polygon points="27 28,31 22,35 22,35 28" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)" mask="uri(#arch)">
+    <polygon points="10 35,11 29,24 28,30 20,41 20,45 28,53 29,55 35"/>
+    <circle cx="17" cy="35" r="4"/>
+    <circle cx="47" cy="35" r="4"/>
+  </g>
+</svg>
