@@ -7,7 +7,7 @@
       </g>
     </mask>
   </defs>
-  <g transform="translate(0, 0)" mask="uri(#arch)">
+  <g transform="translate(0, 0)" mask="url(#arch)">
     <polygon points="10 35,11 29,24 28,30 20,41 20,45 28,53 29,55 35"/>
     <circle cx="17" cy="35" r="4"/>
     <circle cx="47" cy="35" r="4"/>
