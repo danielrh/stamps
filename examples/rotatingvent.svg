@@ -1,0 +1,59 @@
+<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(337, 539) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(337, 524) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(338, 536) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(398, 539) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(400, 522) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(400, 536) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(325, 458) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(422, 463) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(437, 503) translate(32, 32) rotate(180) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/lquartramp.png"/>
+</g>
+<g transform="translate(295, 508) translate(32, 32) rotate(-180) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/rquartramp.png"/>
+</g>
+<g transform="translate(296, 485) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(435, 481) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(392, 425) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(330, 423) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(434, 422) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(482, 391) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/hporthole.png"/>
+</g>
+<g transform="translate(525, 392) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(484, 394) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallsquare.png"/>
+</g>
+<g transform="translate(526, 452) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+</svg>

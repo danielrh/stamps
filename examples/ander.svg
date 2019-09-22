@@ -1,0 +1,112 @@
+<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(441, 77) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/roof.png"/>
+</g>
+<g transform="translate(379, 123) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(503, 123) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(439, 125) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/n.png"/>
+</g>
+<g transform="translate(359, 189) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(383, 190) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(414, 190) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(467, 190) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(495, 190) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(521, 190) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+</g>
+<g transform="translate(439, 128) translate(32, 32) rotate(315) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallsquare.png" clip-path="url(#0)"/>
+</g>
+<g transform="translate(495, 256) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(385, 256) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(257, 183) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/house.png"/>
+</g>
+<g transform="translate(257, 183) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/house.png"/>
+</g>
+<g transform="translate(221, 208) translate(32, 32) rotate(240) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfthinrect.png" clip-path="url(#1)"/>
+</g>
+<g transform="translate(221, 311) translate(32, 32) rotate(275) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfthinrect.png"/>
+</g>
+<g transform="translate(229, 351) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(229, 384) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(229, 523) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(229, 484) translate(32, 32) rotate(187) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(170, 444) translate(32, 32) rotate(187) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(247, 422) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/circle.png"/>
+</g>
+<g transform="translate(370, 477) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/circle.png"/>
+</g>
+<g transform="translate(385, 320) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(435, 320) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(495, 320) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(446, 256) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(495, 384) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(435, 384) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(417, 384) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(365, 384) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(348, 384) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+</g>
+<g transform="translate(338, 323) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/lhalframp.png"/>
+</g>
+<defs>
+<clipPath id="0">
+<polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,-713.9976541518074 -940.2718241315031,-180.83914113715068 -407.11331111684603,-852.5905832643709 264.6381310103739,-1385.7490962790275 -268.5203820042831,-713.9976541518074 -940.2718241315031,-128 -128,476.77016536633863 -1078.864753244066,1009.9286783809953 -545.7062402294091,338.17723625377505 126.0452018978109,-194.98127676088166 -407.11331111684603,476.77016536633863 -1078.864753244066,-128 -128"/>
+</clipPath>
+<clipPath id="1">
+<polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,738.3460969082657 -711.427327573085,361.34609690826534 -58.4441731196184,-461.3780366869511 -533.4441731196189,-84.37803668695074 -1186.4273275730854,738.3460969082657 -711.427327573085,-128 -128,1180.4099764656376 402.89557284253766,803.4099764656371 1055.8787272960042,-19.3141571295794 580.8787272960037,357.68584287042097 -72.10442715746281,1180.4099764656376 402.89557284253766,-128 -128"/>
+</clipPath>
+</defs>
+</svg>
