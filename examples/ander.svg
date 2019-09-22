@@ -1,105 +1,105 @@
 <svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
 <g transform="translate(441, 77) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/roof.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/roof.svg"/>
 </g>
 <g transform="translate(379, 123) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/ramp.svg"/>
 </g>
 <g transform="translate(503, 123) translate(32, 32) rotate(90) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/ramp.svg"/>
 </g>
 <g transform="translate(439, 125) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/n.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/n.svg"/>
 </g>
 <g transform="translate(359, 189) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(383, 190) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(414, 190) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(467, 190) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(495, 190) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(521, 190) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/column.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/column.svg"/>
 </g>
 <g transform="translate(439, 128) translate(32, 32) rotate(315) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/smallsquare.png" clip-path="url(#0)"/>
+<image x="0" y="0" width="64" height="64" href="assets/smallsquare.svg" clip-path="url(#0)"/>
 </g>
 <g transform="translate(495, 256) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(385, 256) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(257, 183) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/house.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/house.svg"/>
 </g>
 <g transform="translate(257, 183) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/house.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/house.svg"/>
 </g>
 <g transform="translate(221, 208) translate(32, 32) rotate(240) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/halfthinrect.png" clip-path="url(#1)"/>
+<image x="0" y="0" width="64" height="64" href="assets/halfthinrect.svg" clip-path="url(#1)"/>
 </g>
 <g transform="translate(221, 311) translate(32, 32) rotate(275) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/halfthinrect.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/halfthinrect.svg"/>
 </g>
 <g transform="translate(229, 351) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/pipe.svg"/>
 </g>
 <g transform="translate(229, 384) translate(32, 32) rotate(90) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/pipe.svg"/>
 </g>
 <g transform="translate(229, 523) translate(32, 32) rotate(90) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/pipe.svg"/>
 </g>
 <g transform="translate(229, 484) translate(32, 32) rotate(187) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/pipe.svg"/>
 </g>
 <g transform="translate(170, 444) translate(32, 32) rotate(187) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/pipe.svg"/>
 </g>
 <g transform="translate(247, 422) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/circle.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/circle.svg"/>
 </g>
 <g transform="translate(370, 477) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/circle.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/circle.svg"/>
 </g>
 <g transform="translate(385, 320) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(435, 320) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(495, 320) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(446, 256) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(495, 384) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(435, 384) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(417, 384) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(365, 384) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(348, 384) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/square.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/square.svg"/>
 </g>
 <g transform="translate(338, 323) translate(32, 32) translate(-32, -32)">
-<image x="0" y="0" width="64" height="64" href="assets/stamps/lhalframp.png"/>
+<image x="0" y="0" width="64" height="64" href="assets/lhalframp.svg"/>
 </g>
 <defs>
 <clipPath id="0">
