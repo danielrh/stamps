@@ -13,6 +13,6 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon points="0 0,64 0,64 64,0 64" mask="url(#windows)"/>
+    <polygon points="1 1,63 1,63 63,1 63" mask="url(#windows)"/>
   </g>
 </svg>
