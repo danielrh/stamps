@@ -14,7 +14,7 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon points="0 0,32 0,32 64,0 64" mask="url(#left)"/>
-    <polygon points="64 0,32 0,32 64,64 64" mask="url(#right)"/>
+    <polygon points="1 1,32 1,32 63,1 63" mask="url(#left)"/>
+    <polygon points="63 1,32 1,32 63,63 63" mask="url(#right)"/>
   </g>
 </svg>

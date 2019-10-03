@@ -9,6 +9,6 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)" mask="url(#arch)">
-    <polygon points="0 0,64 0,64 64,0 64"/>
+    <polygon points="1 1,63 1,63 63,1 63"/>
   </g>
 </svg>
