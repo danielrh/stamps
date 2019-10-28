@@ -1,0 +1,85 @@
+<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(441, 540) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/rarch.png"/>
+</g>
+<g transform="translate(410, 541) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/larch.png"/>
+</g>
+<g transform="translate(425, 479) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(483, 537) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(487, 481) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(487, 419) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(486, 362) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(540, 541) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(596, 541) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/gothic.png"/>
+</g>
+<g transform="translate(543, 483) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(540, 419) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(544, 359) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(603, 481) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(486, 307) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(545, 304) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(545, 246) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(486, 246) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(547, 186) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(485, 186) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(545, 127) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(486, 127) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(484, 70) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(541, 71) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(479, 8) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png" clip-path="url(#0)"/>
+</g>
+<g transform="translate(539, 9) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png" clip-path="url(#1)"/>
+</g>
+<defs>
+<clipPath id="0">
+<polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,-1223 -8,-469 -8,-469 942,-1223 942,-1223 -8,-128 -128,-479 -948,275 -948,275 2,-479 2,-479 -948,-128 -128"/>
+</clipPath>
+<clipPath id="1">
+<polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,-9.000000000000078 1347,-9.000000000000036 593,941 593,940.9999999999999 1347,-9.000000000000078 1347,-128 -128,-949 602.9999999999999,-949 -151.00000000000006,1.0000000000000107 -151,0.9999999999999645 603,-949 602.9999999999999,-128 -128"/>
+</clipPath>
+</defs>
+</svg>

@@ -1,0 +1,38 @@
+<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(314, 537) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doublepane.png"/>
+</g>
+<g transform="translate(369, 537) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(423, 541) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(423, 491) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/porthole.png"/>
+</g>
+<g transform="translate(484, 535) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/arch.png"/>
+</g>
+<g transform="translate(477, 540) translate(32, 32) rotate(180) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/rect.png"/>
+</g>
+<g transform="translate(548, 564) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/car.png"/>
+</g>
+<g transform="translate(424, 434) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(482, 478) translate(32, 32) rotate(90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(370, 484) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+<g transform="translate(437, 416) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/quartpipe.png"/>
+</g>
+<g transform="translate(252, 539) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/ramp.png"/>
+</g>
+</svg>

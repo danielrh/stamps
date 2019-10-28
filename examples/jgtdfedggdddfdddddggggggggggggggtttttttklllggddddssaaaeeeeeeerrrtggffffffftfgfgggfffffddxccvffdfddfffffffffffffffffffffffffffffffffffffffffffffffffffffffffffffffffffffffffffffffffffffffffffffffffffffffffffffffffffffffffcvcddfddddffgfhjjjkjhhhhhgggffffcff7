@@ -1,0 +1,95 @@
+<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<g transform="translate(477, 540) translate(32, 32) rotate(-7) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/arch.png"/>
+</g>
+<g transform="translate(446, 478) translate(32, 32) rotate(-6) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(469, 475) translate(32, 32) rotate(-6) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(493, 471) translate(32, 32) rotate(-6) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(464, 438) translate(32, 32) rotate(81) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(459, 401) translate(32, 32) rotate(-8) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/arch.png"/>
+</g>
+<g transform="translate(426, 339) translate(32, 32) rotate(-7) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(453, 335) translate(32, 32) rotate(-7) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(475, 332) translate(32, 32) rotate(-7) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/doric.png"/>
+</g>
+<g transform="translate(440, 269) translate(32, 32) rotate(-9) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/gothic.png"/>
+</g>
+<g transform="translate(433, 233) translate(32, 32) rotate(81) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(432, 225) translate(32, 32) rotate(81) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(411, 208) translate(32, 32) rotate(-8) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/harch.png"/>
+</g>
+<g transform="translate(446, 202) translate(32, 32) rotate(-8) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/harch.png"/>
+</g>
+<g transform="translate(362, 545) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfpipe.png"/>
+</g>
+<g transform="translate(361, 518) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/medcircle.png"/>
+</g>
+<g transform="translate(393, 547) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfpipe.png"/>
+</g>
+<g transform="translate(393, 527) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(420, 548) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfpipe.png"/>
+</g>
+<g transform="translate(421, 519) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/medcircle.png"/>
+</g>
+<g transform="translate(540, 555) translate(32, 32) rotate(180) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/quartpipe.png"/>
+</g>
+<g transform="translate(539, 543) translate(32, 32) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/smallcircle.png"/>
+</g>
+<g transform="translate(583, 548) translate(32, 32) rotate(165) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/halfpipe.png"/>
+</g>
+<g transform="translate(586, 537) translate(32, 32) rotate(110) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/quartpipe.png"/>
+</g>
+<g transform="translate(580, 503) translate(32, 32) rotate(110) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/quartpipe.png"/>
+</g>
+<g transform="translate(573, 541) translate(32, 32) rotate(57) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/quartpipe.png"/>
+</g>
+<g transform="translate(424, 186) translate(32, 32) rotate(82) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(402, 154) translate(32, 32) rotate(-9) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/lhalframp.png"/>
+</g>
+<g transform="translate(432, 150) translate(32, 32) rotate(-8) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/rhalframp.png"/>
+</g>
+<g transform="translate(410, 98) translate(32, 32) rotate(-5) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/pipe.png"/>
+</g>
+<g transform="translate(395, 71) translate(32, 32) rotate(-90) translate(-32, -32)">
+<image x="0" y="0" width="64" height="64" href="assets/stamps/rquartramp.png"/>
+</g>
+</svg>
