@@ -1,5 +1,5 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(0, 0)">
-    <polygon points="17 63,47 1,47 63"/>
+    <polygon fill="white" stroke="white" points="17 63,47 1,47 63"/>
   </g>
 </svg>

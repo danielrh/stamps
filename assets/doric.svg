@@ -1,8 +1,8 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(0, 0)">
-    <polygon points="29 8,35 8,36 56,28 56"/>
-    <polygon points="25 1,39 1,39 3,35 6,29 6,25 3"/>
-    <polygon points="26 60,38 60,38 58,26 58"/>
-    <polygon points="25 63,39 63,39 61,25 61"/>
+    <polygon fill="white" stroke="white" points="29 8,35 8,36 56,28 56"/>
+    <polygon fill="white" stroke="white" points="25 1,39 1,39 3,35 6,29 6,25 3"/>
+    <polygon fill="white" stroke="white" points="26 60,38 60,38 58,26 58"/>
+    <polygon fill="white" stroke="white" points="25 63,39 63,39 61,25 61"/>
   </g>
 </svg>

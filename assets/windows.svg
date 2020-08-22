@@ -13,8 +13,8 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon mask="url(#windows)" points="1 1,14 1,14 63,1 63"/>
-    <polygon mask="url(#windows)" points="17 1,47 1,47 63,17 63"/>
-    <polygon mask="url(#windows)" points="50 1,63 1,63 63,50 63"/>
+    <polygon fill="white" stroke="white" mask="url(#windows)" points="1 1,14 1,14 63,1 63"/>
+    <polygon fill="white" stroke="white" mask="url(#windows)" points="17 1,47 1,47 63,17 63"/>
+    <polygon fill="white" stroke="white" mask="url(#windows)" points="50 1,63 1,63 63,50 63"/>
   </g>
 </svg>

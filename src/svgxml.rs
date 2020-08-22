@@ -4,6 +4,8 @@ use super::serde_xml_rs;
 use serde::{Deserialize, Deserializer};
 use serde;
 use regex::Regex;
+use std::fmt::Write;
+use std::convert::TryFrom;
 fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
     let mut any_found = false;
     for c in s.chars() {
@@ -24,6 +26,80 @@ fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
         scratch
     } else {
         s
+    }
+}
+
+#[derive(Debug, Default,Copy,Clone, Eq,PartialEq)]
+pub struct Color{
+    r:u8,
+    g:u8,
+    b:u8,
+}
+
+impl ToString for Color {
+    fn to_string(&self) -> String {
+        let mut s = String::with_capacity(7);
+        s += "#";
+        for byte in &[self.r,self.g,self.b] {
+            write!(s, "{:02x}", byte).unwrap();
+        }
+        s
+    }
+}
+impl TryFrom<String> for Color {
+    type Error = String;
+    fn try_from(hex: String) -> Result<Color, Self::Error> {
+        str_to_color(&hex)
+    }
+}
+
+
+fn str_to_color(hex: &str) -> Result<Color, String> {
+    if hex.len() != 7 {
+        return Err(hex.to_string() + ": is not 7 long");
+    }
+    let bytes = hex.as_bytes();
+    for chr in bytes {
+            if *chr > 128 {
+                return Err(hex.to_string() + ": non-ASCII color");
+            }
+    }
+    // need to make sure it's ascii so that the split_at won't panic
+    let (hash, rest) = hex.split_at(1);
+    if hash != "#" {
+        return Err(hex.to_string() + ": does not begin with  #");
+    }
+    let (rstr, rest) = rest.split_at(2);
+    let (gstr, rest) = rest.split_at(2);
+    let (bstr, rest) = rest.split_at(2);
+    let r = if let Ok(rr) = u8::from_str_radix(rstr, 16) {
+        rr
+    } else {
+        return Err(rstr.to_string() + " not base 16");
+    };
+    let g = if let Ok(gg) = u8::from_str_radix(gstr, 16) {
+        gg
+    } else {
+        return Err(gstr.to_string() + " not base 16");
+    };
+    let b = if let Ok(bb) = u8::from_str_radix(bstr, 16) {
+        bb
+    } else {
+        return Err(bstr.to_string() + " not base 16");
+    };
+    Ok(Color{r:r, g:g, b:b})
+}
+        
+impl TryFrom<&str> for Color {
+    type Error = String;
+    fn try_from(hex:&str) -> Result<Color, String> {
+        str_to_color(hex)
+    }
+}
+
+impl serde::Serialize  for Color {
+    fn serialize<S:serde::Serializer>(&self, s:S) -> Result<S::Ok, S::Error> {
+        s.serialize_str(&self.to_string())
     }
 }
 
@@ -103,11 +179,13 @@ struct image {
     pub y: i32,
     pub width: u32,
     pub height: u32,
-    pub href: String,
+    pub mask: String,
     #[serde(default)]
     #[serde(rename="clip-path")]
     pub clip_mask: String,
+    pub fill: String,
 }
+
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Serialize, PartialEq)]
@@ -117,20 +195,23 @@ pub struct Image {
     pub width: u32,
     pub height: u32,
     pub href: HrefAndClipMask,
+    pub fill: Color,
 }
 
-impl From<image> for Image {
-    fn from(im: image) -> Self {
-        Image{
+impl TryFrom<image> for Image {
+    type Error = String;
+    fn try_from(im: image) -> Result<Self, Self::Error> {
+        Ok(Image{
             x:im.x,
             y:im.y,
             width:im.width,
             height:im.height,
             href:HrefAndClipMask{
-                url:im.href,
+                url:parse_url_from_mask(&im.mask)?.to_string(),
                 clip:im.clip_mask,
             },
-        }
+            fill:Color::try_from(im.fill)?,
+        })
     }
 }
 
@@ -141,7 +222,8 @@ impl From<Image> for image {
             y:im.y,
             width:im.width,
             height:im.height,
-            href:im.href.url,
+            fill:im.fill.to_string(),
+            mask:"url(#".to_string() + &im.href.url+")",
             clip_mask:im.href.clip,
         }
     }
@@ -153,13 +235,13 @@ impl Image {
         let mut scratch2 = String::new();
         if self.href.clip.len() != 0 {
             Ok(format!(
-                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" href=\"{}\" clip-path=\"{}\"/>",
-                self.x,self.y,self.width,self.height,attr_escape(&self.href.url, &mut scratch), attr_escape(&self.href.clip, &mut scratch2),
+                "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" mask=\"url(#{})\" clip-path=\"{}\"/>",
+                self.x,self.y,self.width,self.height, self.fill.to_string(), attr_escape(&self.href.url, &mut scratch), attr_escape(&self.href.clip, &mut scratch2),
             ))
         } else {
             Ok(format!(
-                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" href=\"{}\"/>",
-                self.x,self.y,self.width,self.height,attr_escape(&self.href.url, &mut scratch),
+                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" mask=\"url(#{})\"/>",
+                self.x,self.y,self.width,self.height,self.fill.to_string(),attr_escape(&self.href.url, &mut scratch),
             ))
         }
     }
@@ -248,6 +330,21 @@ fn pack_polygon_points(input: &[F64Point]) -> String {
     input.iter().map(|val|format!("{} {}", val.0, val.1)).collect::<Vec<String>>().join(",")
 }
 
+const URL_REGEX_STR: &'static str = r"url\(#([^\)]+)\)";
+fn parse_url_from_mask<'a>(mask:&'a str) -> Result<&'a str, String> {
+    lazy_static! {
+        static ref URL_REGEX: Regex = Regex::new(URL_REGEX_STR).unwrap();
+    };
+    let matches_opt = URL_REGEX.captures(mask);
+    if let Some(matches) = matches_opt{
+        if let Some(ret) = matches.get(1) {
+            return Ok(ret.as_str());
+        } else {
+            return Err("No url(#something.png) matches for ".to_string() + mask);
+        }
+    }
+    Err("Unable to extract relative image url from match".to_string() + mask)
+}
 const TFORM_REGEX_STR: &'static str = r"^\s*(?:scale\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?\s*(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?(?:rotate\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\s*\)?)\s*$";
 fn gen_transform_deserializer(input:&str) -> Result<Transform, String> {
   lazy_static! {
@@ -317,7 +414,7 @@ fn image_deserializer<'de, D>(deserializer: D) -> Result<Image, D::Error>
 where
   D: Deserializer<'de>,
 {
-  Ok(Image::from(image::deserialize(deserializer)?))
+  Ok(Image::try_from(image::deserialize(deserializer)?).map_err(serde::de::Error::custom)?)
 }
 
 #[allow(non_camel_case_types)]
@@ -431,6 +528,7 @@ impl SVG {
             image:Image{
                 x:0,
                 y:0,
+                fill:Color::default(),
                 width:width,
                 height:height,
                 href:HrefAndClipMask{url:img, clip:clip_mask},

@@ -8,7 +8,7 @@
       </g>
     </mask>
   </defs>
-  <g transform="translate(0, 0)" mask="url(#arch)">
-    <polygon points="1 1,63 1,63 63,1 63"/>
+  <g transform="translate(0, 0)" mask="url(#arch)" fill="white" stroke="white">
+    <polygon fill="white" stroke="white" points="1 1,63 1,63 63,1 63"/>
   </g>
 </svg>
