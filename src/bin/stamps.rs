@@ -167,11 +167,11 @@ impl SceneGraph {
       }
       let mut polygon_intercepts = Vec::<i32>::new();
       for g in self.arrangement.svg.stamps.iter() {
-          if let None = self.inventory_map.get(&g.image.href) {
+          if let None = self.inventory_map.get(&g.rect.href) {
               // now we need to prerender
               let mut polygon = Polygon::default();
               for clips in self.arrangement.svg.defs.clipPath.iter() {
-                  if "url(#".to_string() + &clips.id + ")" == g.image.href.clip {
+                  if "url(#".to_string() + &clips.id + ")" == g.rect.href.clip {
                       polygon = clips.polygon.clone();
                   }
               }
@@ -180,7 +180,7 @@ impl SceneGraph {
               let height;
               let name;
               if let Some(img) = self.inventory_map.get(&HrefAndClipMask{
-                  url:g.image.href.url.clone(),
+                  url:g.rect.href.url.clone(),
                   clip:String::new(),
               }) {
                   let img_texture = &images.stamps[*img];
@@ -258,9 +258,9 @@ impl SceneGraph {
               });
               let new_index = images.stamps.len();
               images.stamps.push(make_texture_surface!(texture_creator, dst_surface, name)?);
-              eprintln!("Making texture surface {:?} {}\n", g.image.href.clone(), new_index);
+              eprintln!("Making texture surface {:?} {}\n", g.rect.href.clone(), new_index);
               self.inventory_map.insert(
-                  g.image.href.clone(),
+                  g.rect.href.clone(),
                    new_index,
                   );
                    
@@ -337,13 +337,13 @@ impl SceneState {
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
         for g in self.scene_graph.arrangement.get().stamps.iter() {
-            if let Some(index) = self.scene_graph.inventory_map.get(&g.image.href) {
+            if let Some(index) = self.scene_graph.inventory_map.get(&g.rect.href) {
                 let final_transform = stamps::compose(&self.camera_transform, &g.transform);
                 let img = &images.stamps[*index];
                 canvas.copy_ex(
                     &img.texture,
                     None,
-                    Some(Rect::new(final_transform.tx as i32, final_transform.ty as i32, g.image.width, g.image.height)),
+                    Some(Rect::new(final_transform.tx as i32, final_transform.ty as i32, g.rect.width, g.rect.height)),
                     final_transform.rotate,
                     Point::new(final_transform.midx as i32, final_transform.midy as i32),
                     false,

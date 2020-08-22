@@ -240,7 +240,7 @@ impl Image {
             ))
         } else {
             Ok(format!(
-                "<image x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" mask=\"url(#{})\"/>",
+                "<rect x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" fill=\"{}\" mask=\"url(#{})\"/>",
                 self.x,self.y,self.width,self.height,self.fill.to_string(),attr_escape(&self.href.url, &mut scratch),
             ))
         }
@@ -424,7 +424,7 @@ pub struct g {
     pub transform: Transform,
     #[serde(rename="$value")]
     #[serde(deserialize_with="image_deserializer")]
-    pub image: Image,
+    pub rect: Image,
 }
 
 
@@ -433,7 +433,7 @@ impl g {
         Ok(format!(
             "<g transform=\"{}\">\n{}\n</g>",
             self.transform.to_string()?,
-            self.image.to_string()?,
+            self.rect.to_string()?,
         ))
     }
 }
@@ -525,7 +525,7 @@ impl SVG {
         let height = (transform.midy * 2.0) as u32;
         self.stamps.push(g{
             transform:transform,
-            image:Image{
+            rect:Image{
                 x:0,
                 y:0,
                 fill:Color::default(),
@@ -554,16 +554,16 @@ impl SVG {
 
 
 mod test {
-    use super::F64Point;
+    use super::{F64Point,Color};
     #[test]
     fn test_basic_serde() {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<image x="0" y="0" width="128" height="128" href="simpler.svg"/>
+<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#simpler.svg)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<image x="0" y="0" width="128" height="128" href="simpler.svg"/>
+<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#simpler.svg)"/>
 </g>
 </svg>"##;
         let svg_struct = SVG {
@@ -574,7 +574,8 @@ mod test {
             stamps:vec![
                 g{
                   transform:Transform{scale:2.0, tx:0.0, ty:0.0, rotate:8.0, midx:64.0, midy:64.0},
-                    image:Image{
+                    rect:Image{
+		    fill:Color{r:0,g:0,b:0},
                         x:0,
                         y:0,
                         height:128,
@@ -584,7 +585,8 @@ mod test {
                 },
                 g{
                   transform:Transform{scale:1.0, tx:290.0, ty:80.0, rotate:220.0, midx:64.0, midy:64.0},
-                    image:Image{
+                    rect:Image{
+		    fill:Color{r:255,g:16,b:8},
                         x:0,
                         y:0,
                         height:128,
@@ -609,10 +611,10 @@ mod test {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs, Polygon, ClipPath};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<image x="0" y="0" width="128" height="128" href="simpler.svg" clip-path="url(#clippy)"/>
+<rect x="0" y="0" width="128" height="128" fill="#040506" mask="url(#simpler.svg)" clip-path="url(#clippy)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<image x="0" y="0" width="128" height="128" href="simpler2.svg"/>
+<rect x="0" y="0" width="128" height="128" fill="#00ff00" mask="url(#simpler2.svg)"/>
 </g>
 <defs>
 <clipPath id="hellote">
@@ -630,9 +632,10 @@ mod test {
             stamps:vec![
                 g{
                   transform:Transform{scale:2.0, tx:0.0, ty:0.0, rotate:8.0, midx:64.0, midy:64.0},
-                    image:Image{
+                    rect:Image{
                         x:0,
                         y:0,
+			fill:Color{r:4,g:5,b:6},
                         height:128,
                         width:128,
                         href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:"url(#clippy)".to_string()},
@@ -640,9 +643,10 @@ mod test {
                 },
                 g{
                   transform:Transform{scale:1.0, tx:290.0, ty:80.0, rotate:220.0, midx:64.0, midy:64.0},
-                    image:Image{
+                    rect:Image{
                         x:0,
                         y:0,
+			fill:Color{r:0,g:255,b:0},
                         height:128,
                         width:128,
                         href:HrefAndClipMask{url:"simpler2.svg".to_string(),clip:String::new()},
