@@ -115,14 +115,15 @@ impl Arrangement {
     }
 }
 
-fn round_up_to_golden(angle: f64) -> f64 {
-    let mut iangle = ((angle % 360.) as i32) / 15;
-    iangle += if iangle % 6 == 0 || iangle % 6 == 4 {
+fn round_up_to_golden(angle: f64, locked: bool) -> f64 {
+    let round_const = if locked { 45 } else { 15 };
+    let mut iangle = ((angle % 360.) as i32) / round_const;
+    iangle += if (iangle % 6 == 0 || iangle % 6 == 4) && !locked {// if we're not locked, forget about 15 degrees, etc just go for 30/45/60
         2
     } else {
         1
     };
-    iangle *= 15;
+    iangle *= round_const;
     if iangle < 0 {
         iangle += 360;
     }
@@ -131,14 +132,15 @@ fn round_up_to_golden(angle: f64) -> f64 {
     }
     iangle as f64
 }
-fn round_down_to_golden(angle: f64) -> f64 {
-    let mut iangle = ((angle % 360.) as i32) / 15;
-    iangle -= if iangle % 6 == 0 || iangle % 6 == 2 {
+fn round_down_to_golden(angle: f64, locked: bool) -> f64 {
+    let round_const = if locked { 45 } else { 15 };
+    let mut iangle = ((angle % 360.) as i32) / round_const;
+    iangle -= if (iangle % 6 == 0 || iangle % 6 == 2) && !locked {// if we're not locked, forget about 15 degrees, etc just go for 30/45/60
         2
     } else {
         1
     };
-    iangle *= 15;
+    iangle *= round_const;
     if iangle < 0 {
         iangle += 360;
     }
@@ -299,6 +301,7 @@ struct SceneState{
     window_width: u32,
     window_height: u32,
     color: stamps::Color,
+    locked: bool,
 }
 
 impl SceneState {
@@ -374,8 +377,8 @@ impl SceneState {
             canvas.copy_ex(
                 &img.texture,
                 None,
-                Some(Rect::new(self.cursor_transform.mouse_x - img.surface.width()as i32/2,
-                               self.cursor_transform.mouse_y - img.surface.height() as i32/2,
+                Some(Rect::new(self.mouse_lock_x(self.cursor_transform.mouse_x) - img.surface.width()as i32/2,
+                               self.mouse_lock_y(self.cursor_transform.mouse_y) - img.surface.height() as i32/2,
                                img.surface.width(),
                                img.surface.height())),
                 self.cursor_transform.transform.rotate,
@@ -411,6 +414,19 @@ impl SceneState {
         }
         canvas.present();
         Ok(())
+    }
+    fn mouse_lock_x(&self, mouse_coord:i32) -> i32 {
+        self.mouse_lock(mouse_coord)
+    }
+    fn mouse_lock_y(&self, mouse_coord:i32) -> i32 {
+        self.mouse_lock(mouse_coord)
+    }
+    fn mouse_lock(&self, mouse_coord:i32) -> i32 {
+        if self.locked {
+            return (mouse_coord/4)*4;
+                
+        }
+        mouse_coord
     }
     fn apply_keys(&mut self, keys_down: &HashMap<Keycode, ()>, new_key: Option<Keycode>, repeat:bool) {
         if keys_down.len() != 0{
@@ -577,6 +593,13 @@ impl SceneState {
             self.mask_transforms[shifted_index].tx -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
         }
+        if keys_down.contains_key(&Keycode::Tab) {
+            if shifted_index != 0 {
+                self.locked = false;
+            } else {
+                self.locked = true;
+            }
+        }
         if keys_down.contains_key(&Keycode::K) {
             self.mask_transforms[shifted_index].ty += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
             constrain_mask_transform(&mut self.mask_transforms[shifted_index], self.window_width, self.window_height)
@@ -607,20 +630,22 @@ impl SceneState {
             }
         }
         if keys_down.contains_key(&Keycode::Period) || keys_down.contains_key(&Keycode::KpPeriod) || keys_down.contains_key(&Keycode::Insert) {
-            if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
+            let shift_down = keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift);
+            if self.locked || shift_down {
                 if !repeat {
                     self.duration_per_frame = RELAXED_DURATION_PER_FRAME;
-                    self.cursor_transform.transform.rotate = round_up_to_golden(self.cursor_transform.transform.rotate)
+                    self.cursor_transform.transform.rotate = round_up_to_golden(self.cursor_transform.transform.rotate, self.locked && shift_down)
                 }
             } else {
                 self.cursor_transform.transform.rotate += ROT_CONSTANT;
             }
         }
         if keys_down.contains_key(&Keycode::Comma) || keys_down.contains_key(&Keycode::Kp0) ||  keys_down.contains_key(&Keycode::Delete) {
-            if keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift) {
+            let shift_down = keys_down.contains_key(&Keycode::LShift) || keys_down.contains_key(&Keycode::RShift);
+            if self.locked || shift_down {
                 if !repeat{
                     self.duration_per_frame = RELAXED_DURATION_PER_FRAME;
-                    self.cursor_transform.transform.rotate = round_down_to_golden(self.cursor_transform.transform.rotate)
+                    self.cursor_transform.transform.rotate = round_down_to_golden(self.cursor_transform.transform.rotate, self.locked && shift_down)
                 }
             } else {
                 self.cursor_transform.transform.rotate -= ROT_CONSTANT;
@@ -660,8 +685,8 @@ impl SceneState {
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
             let mut transform = self.cursor_transform.transform.clone();
             transform.rotate -= self.camera_transform.rotate;
-            transform.tx = self.cursor_transform.mouse_x as f64 - self.cursor_transform.transform.midx - self.camera_transform.tx;
-            transform.ty = self.cursor_transform.mouse_y as f64 - self.cursor_transform.transform.midy - self.camera_transform.ty;
+            transform.tx = self.mouse_lock_x(self.cursor_transform.mouse_x) as f64 - self.cursor_transform.transform.midx - self.camera_transform.tx;
+            transform.ty = self.mouse_lock_y(self.cursor_transform.mouse_y) as f64 - self.cursor_transform.transform.midy - self.camera_transform.ty;
             let new_item_url = self.scene_graph.inventory[active_stamp].stamp_name.clone();
             // add clip mask
             let mut any_intersect = false;
@@ -833,6 +858,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         window_width: canvas.viewport().width(),
         window_height: canvas.viewport().height(),
         color:stamps::Color{r:0,g:0,b:0},
+        locked:false,
     };
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
     scene_state.mask_transforms[1].tx = 0.0;
