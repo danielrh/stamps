@@ -604,8 +604,34 @@ mod test {
 <rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#assets/stamps/rarch.png)"/>
 </g>
 <defs>
-<mask id="assets/stamps/larch.png"><image x="0" y="0" width="64" height="64" href="assets/larch.svg"/></mask>
-<mask id="assets/stamps/rarch.png"><image x="0" y="0" width="64" height="64" href="assets/rarch.svg"/></mask>
+<mask id="assets/stamps/larch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="larch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="96" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#larch)"/>
+  </g>
+</svg>
+</mask>
+<mask id="assets/stamps/rarch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="rarch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="-32" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#rarch)"/>
+  </g>
+</svg>
+</mask>
 </defs>
 </svg>"##;
         let svg_struct = SVG {
@@ -640,8 +666,8 @@ mod test {
             defs:defs{
                 clipPath:Vec::new(),
                 mask:vec![
-                    Mask { id: "assets/stamps/larch.png".to_string(), image: SourceStamp { href: "assets/larch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } },
-                    Mask { id: "assets/stamps/rarch.png".to_string(), image: SourceStamp { href: "assets/rarch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } }
+                    Mask { id: "assets/stamps/larch.png".to_string() },
+                    Mask { id: "assets/stamps/rarch.png".to_string() }
                 ],
             },
         };
@@ -669,8 +695,34 @@ mod test {
 <clipPath id="goodbyte">
 <polygon points="0 0,1 1,2 2,-3 3"/>
 </clipPath>
-<mask id="assets/stamps/larch.png"><image x="0" y="0" width="64" height="64" href="assets/larch.svg"/></mask>
-<mask id="assets/stamps/rarch.png"><image x="0" y="0" width="64" height="64" href="assets/rarch.svg"/></mask>
+<mask id="assets/stamps/larch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="larch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="96" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#larch)"/>
+  </g>
+</svg>
+</mask>
+<mask id="assets/stamps/rarch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="rarch">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="-32" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#rarch)"/>
+  </g>
+</svg>
+</mask>
 </defs>
 </svg>"##;
         let svg_struct = SVG {
@@ -703,8 +755,8 @@ mod test {
             ],
             defs:defs{
                 mask:vec![
-                    Mask { id: "assets/stamps/larch.png".to_string(), image: SourceStamp { href: "assets/larch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } },
-                    Mask { id: "assets/stamps/rarch.png".to_string(), image: SourceStamp { href: "assets/rarch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 }}
+                    Mask { id: "assets/stamps/larch.png".to_string()},
+                    Mask { id: "assets/stamps/rarch.png".to_string()}
                 ],
                 clipPath:vec![
                      ClipPath {
