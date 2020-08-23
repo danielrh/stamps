@@ -494,7 +494,7 @@ pub struct defs {
     #[serde(default)]
     pub clipPath: Vec<ClipPath>,
     #[serde(default)]
-    pub mask: Vec<ClipPath>,
+    pub mask: Vec<Mask>,
 }
 impl defs {
     fn to_string(&self, stamps: &Vec<g>) -> Result<String,serde_xml_rs::Error> {

@@ -331,7 +331,7 @@ impl SceneState {
       h_offset += stamp.surface.height() as i32;
     }
   }
-    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &Images) -> Result<(),String> {
+    fn render<T:sdl2::render::RenderTarget>(&self, canvas: &mut sdl2::render::Canvas<T>, images: &mut Images) -> Result<(),String> {
         canvas.set_draw_color(Color::RGBA(255, 255, 255, 255));
         canvas.clear();
         canvas.set_draw_color(Color::RGBA(0, 0, 0, 255));
@@ -339,7 +339,8 @@ impl SceneState {
         for g in self.scene_graph.arrangement.get().stamps.iter() {
             if let Some(index) = self.scene_graph.inventory_map.get(&g.rect.href) {
                 let final_transform = stamps::compose(&self.camera_transform, &g.transform);
-                let img = &images.stamps[*index];
+                let img = &mut images.stamps[*index];
+		img.texture.set_color_mod(0,0,0);
                 canvas.copy_ex(
                     &img.texture,
                     None,
@@ -355,7 +356,8 @@ impl SceneState {
         }
         for stamp_loc in self.scene_graph.inventory.iter() {
           let dest = stamp_loc.stamp_source;
-          let image = &images.stamps[stamp_loc.stamp_index];
+          let image = &mut images.stamps[stamp_loc.stamp_index];
+          image.texture.set_color_mod(0,0,0);
           canvas.copy_ex(
             &image.texture,
             None, Some(dest),
@@ -366,7 +368,8 @@ impl SceneState {
           ).map_err(|err| format!("{:?}", err))?;
         }
         if let Some(active_stamp) = self.active_stamp {
-            let img = &images.stamps[active_stamp];
+            let img = &mut images.stamps[active_stamp];
+	    img.texture.set_color_mod(0,0,0);
             canvas.copy_ex(
                 &img.texture,
                 None,
@@ -764,7 +767,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
                 process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
             }
             scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
-            scene_state.render(&mut canvas, &images)?;
+            scene_state.render(&mut canvas, &mut images)?; // mut images only needed for color mod
             let mut process_time = loop_start_time.elapsed();
             if keys_down.len() != 0 {
                 while process_time < scene_state.duration_per_frame {
