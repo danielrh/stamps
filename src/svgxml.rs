@@ -507,6 +507,7 @@ fn read_to_string(filename: &Path) ->  Result<String, serde_xml_rs::Error> {
     }
 }
 
+
 impl defs {
     fn to_string(&self, stamps: &Vec<g>) -> Result<String,serde_xml_rs::Error> {
         let mut ret = vec![String::new();self.clipPath.len()];
@@ -591,17 +592,21 @@ impl SVG {
 
 
 mod test {
-    use super::{F64Point,Color};
+    use super::{F64Point,Color, SourceStamp, Mask};
     #[test]
     fn test_basic_serde() {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#simpler.svg)"/>
+<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#assets/stamps/larch.png)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#simpler.svg)"/>
+<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#assets/stamps/rarch.png)"/>
 </g>
+<defs>
+<mask id="assets/stamps/larch.png"><image x="0" y="0" width="64" height="64" href="assets/larch.svg"/></mask>
+<mask id="assets/stamps/rarch.png"><image x="0" y="0" width="64" height="64" href="assets/rarch.svg"/></mask>
+</defs>
 </svg>"##;
         let svg_struct = SVG {
             width:500,
@@ -617,7 +622,7 @@ mod test {
                         y:0,
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/larch.png".to_string(),clip:String::new()},
                     }
                 },
                 g{
@@ -628,12 +633,16 @@ mod test {
                         y:0,
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/rarch.png".to_string(),clip:String::new()},
                     }                        
                 },
             ],
             defs:defs{
                 clipPath:Vec::new(),
+                mask:vec![
+                    Mask { id: "assets/stamps/larch.png".to_string(), image: SourceStamp { href: "assets/larch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } },
+                    Mask { id: "assets/stamps/rarch.png".to_string(), image: SourceStamp { href: "assets/rarch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } }
+                ],
             },
         };
         use super::serde_xml_rs::from_str;
@@ -648,10 +657,10 @@ mod test {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs, Polygon, ClipPath};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#040506" mask="url(#simpler.svg)" clip-path="url(#clippy)"/>
+<rect x="0" y="0" width="128" height="128" fill="#040506" mask="url(#assets/stamps/larch.png)" clip-path="url(#clippy)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#00ff00" mask="url(#simpler2.svg)"/>
+<rect x="0" y="0" width="128" height="128" fill="#00ff00" mask="url(#assets/stamps/rarch.png)"/>
 </g>
 <defs>
 <clipPath id="hellote">
@@ -660,6 +669,8 @@ mod test {
 <clipPath id="goodbyte">
 <polygon points="0 0,1 1,2 2,-3 3"/>
 </clipPath>
+<mask id="assets/stamps/larch.png"><image x="0" y="0" width="64" height="64" href="assets/larch.svg"/></mask>
+<mask id="assets/stamps/rarch.png"><image x="0" y="0" width="64" height="64" href="assets/rarch.svg"/></mask>
 </defs>
 </svg>"##;
         let svg_struct = SVG {
@@ -675,7 +686,7 @@ mod test {
 			fill:Color{r:4,g:5,b:6},
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"simpler.svg".to_string(),clip:"url(#clippy)".to_string()},
+                        href:HrefAndClipMask{url:"assets/stamps/larch.png".to_string(),clip:"url(#clippy)".to_string()},
                     }
                 },
                 g{
@@ -686,11 +697,15 @@ mod test {
 			fill:Color{r:0,g:255,b:0},
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"simpler2.svg".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/rarch.png".to_string(),clip:String::new()},
                     }                        
                 },
             ],
             defs:defs{
+                mask:vec![
+                    Mask { id: "assets/stamps/larch.png".to_string(), image: SourceStamp { href: "assets/larch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 } },
+                    Mask { id: "assets/stamps/rarch.png".to_string(), image: SourceStamp { href: "assets/rarch.svg".to_string(), x: 0, y: 0, width: 64, height: 64 }}
+                ],
                 clipPath:vec![
                      ClipPath {
                         id: "hellote".to_string(),
