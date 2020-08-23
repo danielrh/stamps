@@ -514,7 +514,7 @@ impl defs {
         for (serialized, deserialized) in ret.iter_mut().zip(self.clipPath.iter())   {
             *serialized = deserialized.to_string()?;
         }
-	let mut active_images = std::collections::HashSet::<String>::new();
+	let mut active_images = std::collections::BTreeSet::<String>::new();
 	for stamp in stamps {
 	    if !active_images.contains(&stamp.rect.href.url) {
 	    active_images.insert(stamp.rect.href.url.clone());
