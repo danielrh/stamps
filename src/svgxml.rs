@@ -465,6 +465,21 @@ pub struct ClipPath{
     pub id: String,
     pub polygon: Polygon,
 }
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct SourceStamp{
+    pub href: String,
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
+pub struct Mask{
+    pub id: String,
+    pub image: SourceStamp,
+}
 impl ClipPath {
     fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
         let mut scratch = String::new();
@@ -476,17 +491,26 @@ impl ClipPath {
 }
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct defs {
+    #[serde(default)]
     pub clipPath: Vec<ClipPath>,
+    #[serde(default)]
+    pub mask: Vec<ClipPath>,
 }
 impl defs {
-    fn to_string(&self) -> Result<String,serde_xml_rs::Error> {
-        if self.clipPath.len() == 0 {
-            return Ok(String::new());
-        }
+    fn to_string(&self, stamps: &Vec<g>) -> Result<String,serde_xml_rs::Error> {
         let mut ret = vec![String::new();self.clipPath.len()];
         for (serialized, deserialized) in ret.iter_mut().zip(self.clipPath.iter())   {
             *serialized = deserialized.to_string()?;
         }
+	let mut active_images = std::collections::HashSet::<String>::new();
+	for stamp in stamps {
+	    if !active_images.contains(&stamp.rect.href.url) {
+	    active_images.insert(stamp.rect.href.url.clone());
+	    }
+	}
+	for active_image in active_images {
+	    ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, active_image.replace("/stamps/","/").replace(".png", ".svg")));
+	}
         Ok(format!("<defs>\n{}</defs>\n", ret.join("")))
     }
 }
@@ -509,7 +533,7 @@ impl SVG {
         width: width,
         height:height,
         stamps:Vec::new(),
-        defs:defs{clipPath:Vec::new(),},
+        defs:defs{clipPath:Vec::new(),mask:Vec::new()},
       }
     }
     pub fn from_str(s: &str) -> Result<Self,serde_xml_rs::Error> {
@@ -547,7 +571,7 @@ impl SVG {
             self.width,
             self.height,
             ret.join("\n"),
-            self.defs.to_string()?
+            self.defs.to_string(&self.stamps)?
         ))
     }
 }
