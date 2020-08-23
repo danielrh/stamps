@@ -435,6 +435,20 @@ impl SceneState {
         }
         if keys_down.contains_key(&Keycode::W) {
             self.camera_transform.ty += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
+            if self.camera_transform.ty > 1.0 {
+                let to_round = self.camera_transform.ty as u32;
+                for stamp_loc in self.scene_graph.arrangement.undo.iter_mut() {
+                    stamp_loc.transform.ty += to_round as f64;
+                }
+                for stamp_loc in self.scene_graph.arrangement.svg.stamps.iter_mut() {
+                    stamp_loc.transform.ty += to_round as f64;
+                }
+                self.scene_graph.arrangement.svg.height += to_round;
+                for mask in self.mask_transforms.iter_mut() {
+                    // mask.ty -= to_round as f64 we want it to remain, visually, in the same place
+                }
+                self.camera_transform.ty -= to_round as f64;
+            }
         }
         if keys_down.contains_key(&Keycode::A) {
             self.camera_transform.tx -= mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
