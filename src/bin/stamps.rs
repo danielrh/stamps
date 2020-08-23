@@ -340,7 +340,7 @@ impl SceneState {
             if let Some(index) = self.scene_graph.inventory_map.get(&g.rect.href) {
                 let final_transform = stamps::compose(&self.camera_transform, &g.transform);
                 let img = &mut images.stamps[*index];
-		img.texture.set_color_mod(0,0,0);
+		img.texture.set_color_mod(g.rect.fill.r,g.rect.fill.g,g.rect.fill.b);
                 canvas.copy_ex(
                     &img.texture,
                     None,

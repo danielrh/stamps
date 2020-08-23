@@ -31,9 +31,9 @@ fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
 
 #[derive(Debug, Default,Copy,Clone, Eq,PartialEq)]
 pub struct Color{
-    r:u8,
-    g:u8,
-    b:u8,
+    pub r:u8,
+    pub g:u8,
+    pub b:u8,
 }
 
 impl ToString for Color {
