@@ -1,10 +1,12 @@
 #[allow(unused_imports)]
+use std::path::Path;
 use super::serde_xml_rs::from_str;
 use super::serde_xml_rs;
+use std::io::Read;
+use std::fmt::Write;
 use serde::{Deserialize, Deserializer};
 use serde;
 use regex::Regex;
-use std::fmt::Write;
 use std::convert::TryFrom;
 fn attr_escape<'a> (s:&'a String, scratch :&'a mut String) -> &'a str {
     let mut any_found = false;
@@ -496,6 +498,15 @@ pub struct defs {
     #[serde(default)]
     pub mask: Vec<Mask>,
 }
+fn read_to_string(filename: &Path) ->  Result<String, serde_xml_rs::Error> {
+    let mut f = std::fs::File::open(filename)?;
+    let mut buffer = String::new();
+    match f.read_to_string(&mut buffer) {
+        Ok(_) => Ok(buffer),
+        Err(e) => Err(serde::de::Error::custom(e)),
+    }
+}
+
 impl defs {
     fn to_string(&self, stamps: &Vec<g>) -> Result<String,serde_xml_rs::Error> {
         let mut ret = vec![String::new();self.clipPath.len()];
@@ -509,7 +520,9 @@ impl defs {
 	    }
 	}
 	for active_image in active_images {
-	    ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, active_image.replace("/stamps/","/").replace(".png", ".svg")));
+        let svg_filename = active_image.replace("/stamps/","/").replace(".png", ".svg");
+        let asset_xml = read_to_string(&Path::new(&svg_filename))?;
+	    ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, svg_filename));
 	}
         Ok(format!("<defs>\n{}</defs>\n", ret.join("")))
     }
