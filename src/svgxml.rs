@@ -480,7 +480,6 @@ pub struct SourceStamp{
 #[derive(Debug, Serialize, Deserialize, PartialEq, Default)]
 pub struct Mask{
     pub id: String,
-    pub image: SourceStamp,
 }
 impl ClipPath {
     fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
@@ -523,7 +522,8 @@ impl defs {
 	for active_image in active_images {
         let svg_filename = active_image.replace("/stamps/","/").replace(".png", ".svg");
         let asset_xml = read_to_string(&Path::new(&svg_filename))?;
-	    ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, svg_filename));
+	    //ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, svg_filename));
+        ret.push(format!("<mask id=\"{}\">{}</mask>\n",active_image, asset_xml));
 	}
         Ok(format!("<defs>\n{}</defs>\n", ret.join("")))
     }
