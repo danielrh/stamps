@@ -1,6 +1,6 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="arch">
+    <mask id="larch">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <ellipse cx="96" cy="66" rx="74" ry="85" fill="black"/>
@@ -8,6 +8,6 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#arch)"/>
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#larch)"/>
   </g>
 </svg>

@@ -1,6 +1,6 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="arch">
+    <mask id="hdoublepane">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <rect x="25" y="12" width="14" height="14" fill="black"/>
@@ -8,7 +8,7 @@
       </g>
     </mask>
   </defs>
-  <g transform="translate(0, 0)" mask="url(#arch)">
+  <g transform="translate(0, 0)" mask="url(#hdoublepane)">
     <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63"/>
   </g>
 </svg>

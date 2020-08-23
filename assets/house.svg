@@ -1,6 +1,6 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="windows">
+    <mask id="housewindows">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <ellipse cx="22" cy="40" rx="4" ry="4" fill="black"/>
@@ -13,6 +13,6 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon fill="white" stroke="white" points="32 5,51 21,51 58,13 58,13 21" mask="url(#windows)"/>
+    <polygon fill="white" stroke="white" points="32 5,51 21,51 58,13 58,13 21" mask="url(#housewindows)"/>
   </g>
 </svg>

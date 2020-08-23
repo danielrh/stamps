@@ -1,12 +1,12 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="left">
+    <mask id="gothicleft">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <ellipse cx="86" cy="62" rx="72" ry="72" fill="black"/>
       </g>
     </mask>
-    <mask id="right">
+    <mask id="gothicright">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <ellipse cx="-22" cy="62" rx="72" ry="72" fill="black"/>
@@ -14,7 +14,7 @@
     </mask>
   </defs>
   <g transform="translate(0, 0)">
-    <polygon fill="white" stroke="white" points="1 1,32 1,32 63,1 63" mask="url(#left)"/>
-    <polygon fill="white" stroke="white" points="63 1,32 1,32 63,63 63" mask="url(#right)"/>
+    <polygon fill="white" stroke="white" points="1 1,32 1,32 63,1 63" mask="url(#gothicleft)"/>
+    <polygon fill="white" stroke="white" points="63 1,32 1,32 63,63 63" mask="url(#gothicright)"/>
   </g>
 </svg>

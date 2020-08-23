@@ -1,13 +1,13 @@
 <svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <mask id="arch">
+    <mask id="hwindow">
       <g>
       <rect x="0" y="0" width="64" height="64" fill="white"/>
       <rect x="28" y="21" width="8" height="22" fill="black"/>
       </g>
     </mask>
   </defs>
-  <g transform="translate(0, 0)" mask="url(#arch)">
+  <g transform="translate(0, 0)" mask="url(#hwindow)">
     <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63"/>
   </g>
 </svg>
