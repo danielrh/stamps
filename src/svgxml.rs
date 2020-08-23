@@ -544,7 +544,7 @@ impl SVG {
         self.width = width;
         self.height = height;
     }
-    pub fn add(&mut self, transform: Transform, img: String, clip_mask: String) {
+    pub fn add(&mut self, transform: Transform, img: String, clip_mask: String, color: Color) {
         let width = (transform.midx * 2.0) as u32;
         let height = (transform.midy * 2.0) as u32;
         self.stamps.push(g{
@@ -552,7 +552,7 @@ impl SVG {
             rect:Image{
                 x:0,
                 y:0,
-                fill:Color::default(),
+                fill:color,
                 width:width,
                 height:height,
                 href:HrefAndClipMask{url:img, clip:clip_mask},

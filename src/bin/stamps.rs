@@ -298,6 +298,7 @@ struct SceneState{
     save_file_name: String,
     window_width: u32,
     window_height: u32,
+    color: stamps::Color,
 }
 
 impl SceneState {
@@ -369,7 +370,7 @@ impl SceneState {
         }
         if let Some(active_stamp) = self.active_stamp {
             let img = &mut images.stamps[active_stamp];
-	    img.texture.set_color_mod(0,0,0);
+	        img.texture.set_color_mod(self.color.r,self.color.g,self.color.b);
             canvas.copy_ex(
                 &img.texture,
                 None,
@@ -384,6 +385,7 @@ impl SceneState {
                 false,//vert
             ).map_err(|err| format!("{:?}", err))?;            
         } else {
+            images.default_cursor.texture.set_color_mod(self.color.r,self.color.g,self.color.b);
             canvas.copy_ex(
                 &images.default_cursor.texture,
                 None,
@@ -442,6 +444,89 @@ impl SceneState {
         }
         if keys_down.contains_key(&Keycode::D) {
             self.camera_transform.tx += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
+        }
+        if keys_down.contains_key(&Keycode::Num1) {
+            self.color = stamps::Color{r:0xee,g:0x40,b:0x35};
+        }
+        if keys_down.contains_key(&Keycode::Num2) {
+            self.color = stamps::Color{r:0xf3,g:0x77,b:0x36};
+        }
+        if keys_down.contains_key(&Keycode::Num3) {
+            if shifted_index != 0 {
+                self.color = stamps::Color{r:0xfd,g:0xf5,b:0xb0};
+            } else {
+                self.color = stamps::Color{r:0xff,g:0xa7,b:0x00};
+            }
+        }
+        if keys_down.contains_key(&Keycode::Num4) {
+            if shifted_index != 0 {
+                self.color = stamps::Color{r:0x7b,g:0xc0,b:0x43};
+            } else {
+                self.color = stamps::Color{r:0x00,g:0x87,b:0x44};
+            }
+        }
+        if keys_down.contains_key(&Keycode::Num5) {
+            if shifted_index != 0 {
+                self.color = stamps::Color{r:0xc0,g:0xc2,b:0xce};
+            } else {
+                self.color = stamps::Color{r:0x03,g:0x92,b:0xcf};
+            }
+        }
+        if keys_down.contains_key(&Keycode::Num6) {
+            if shifted_index == 0 {
+                self.color = stamps::Color{r:0x40,g:0x40,b:0x40};
+            } else {
+                self.color = stamps::Color{r:0x80,g:0x80,b:0x80};
+            }
+        }
+        if keys_down.contains_key(&Keycode::Num7) {
+            self.color = stamps::Color{r:0x88,g:0x74,b:0xa3};
+        }
+        if keys_down.contains_key(&Keycode::Num8) {
+            self.color = stamps::Color{r:0x3d,g:0x1e,b:0x6d};
+        }
+        if keys_down.contains_key(&Keycode::Num9) {
+            self.color = stamps::Color{r:0x3d,g:0x23,b:0x52};
+        }
+        if keys_down.contains_key(&Keycode::Num0) {
+            self.color = stamps::Color{r:0x2e,g:0x00,b:0x3e};
+        }
+        if keys_down.contains_key(&Keycode::Minus) {
+            self.color = stamps::Color{r:0x0,g:0x0,b:0x0};
+        }
+
+        if keys_down.contains_key(&Keycode::R) {
+            if shifted_index != 0 {
+                if self.color.r > 0 {
+                    self.color.r -= 1
+                }
+            } else {
+                if self.color.r < 0xff {
+                    self.color.r += 1
+                }
+            }
+        }
+        if keys_down.contains_key(&Keycode::G) {
+            if shifted_index != 0 {
+                if self.color.g > 0 {
+                    self.color.g -= 1
+                }
+            } else {
+                if self.color.g < 0xff {
+                    self.color.g += 1
+                }
+            }
+        }
+        if keys_down.contains_key(&Keycode::B) {
+            if shifted_index != 0 {
+                if self.color.b > 0 {
+                    self.color.b -= 1
+                }
+            } else {
+                if self.color.b < 0xff {
+                    self.color.b += 1
+                }
+            }
         }
         if keys_down.contains_key(&Keycode::Escape) {
             write_from_string(Path::new(&self.save_file_name),
@@ -607,6 +692,7 @@ impl SceneState {
                 transform,
                 new_item_url,
                 clip_mask,
+                self.color,
             );
             self.stamp_used = true;
         }
@@ -732,6 +818,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         save_file_name: save_file_name.to_string(),
         window_width: canvas.viewport().width(),
         window_height: canvas.viewport().height(),
+        color:stamps::Color{r:0,g:0,b:0},
     };
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
     scene_state.mask_transforms[1].tx = 0.0;
