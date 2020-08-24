@@ -476,7 +476,11 @@ impl SceneState {
             self.camera_transform.tx += mouse_move(MOUSE_CONSTANT, self.duration_per_frame) as f64;
         }
         if keys_down.contains_key(&Keycode::Num1) {
-            self.color = stamps::Color{r:0xee,g:0x40,b:0x35};
+            if shifted_index != 0 {
+	        self.color = stamps::Color{r:0x2b,g:0x14,b:0x0e};
+	    } else {
+                self.color = stamps::Color{r:0xee,g:0x40,b:0x35};
+            }
         }
         if keys_down.contains_key(&Keycode::Num2) {
             self.color = stamps::Color{r:0xf3,g:0x77,b:0x36};
