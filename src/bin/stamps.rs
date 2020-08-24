@@ -890,53 +890,105 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
-    'mainloop: loop {
-        let loop_start_time = time::Instant::now();
-        let mut events = sdl_context.event_pump()?;
-        if keys_down.len() != 0 {
-            for event in events.poll_iter() {
-                process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
-            }
-            scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
-            scene_state.render(&mut canvas, &mut images)?; // mut images only needed for color mod
-            let mut process_time = loop_start_time.elapsed();
-            if keys_down.len() != 0 {
-                while process_time < scene_state.duration_per_frame {
-                    process_time = loop_start_time.elapsed();
-                    let mut any_events = false;
-                    for event in events.poll_iter() {
-                        process(&mut scene_state, &mut images, event, &mut keys_down)?; // always break
-                        any_events = true;
-                    }
-                    if any_events {
-                        scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
-                        scene_state.render(&mut canvas, &mut images)?;
-                    }
-                }
-                if scene_state.duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
-                    scene_state.duration_per_frame -= DELTA_DURATION_PER_FRAME;
-                } else {
-                    scene_state.duration_per_frame = DESIRED_DURATION_PER_FRAME;
-                }
-                scene_state.apply_keys(&keys_down, None, true);
-                scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
-                scene_state.render(&mut canvas, &mut images)?;
-            }
-        } else {
-            scene_state.duration_per_frame = START_DURATION_PER_FRAME;
-            for event in events.wait_iter() {
-                process(&mut scene_state, &mut images, event, &mut keys_down)?;
-                break;
-            }
-            for event in events.poll_iter() {
-                process(&mut scene_state, &mut images, event, &mut keys_down)?;
-            }
-            scene_state.scene_graph.prepare_textures(&texture_creator, &mut images)?;
-            scene_state.render(&mut canvas, &mut images)?;
-        };
+    run_main_loop_infinitely(&mut MainLoopArg{sdl_context:&sdl_context, scene_state:&mut scene_state, canvas:&mut canvas, images:&mut images, keys_down:&mut keys_down, texture_creator:&texture_creator})
+}
+
+struct MainLoopArg<'a, 'b>{
+    sdl_context: &'a sdl2::Sdl,
+    scene_state: &'a mut SceneState,
+    canvas: &'a mut sdl2::render::Canvas<sdl2::video::Window>,
+    images: &'a mut Images<'b>,
+    keys_down: &'a mut HashMap<Keycode, ()>,
+    texture_creator:&'b sdl2::render::TextureCreator<sdl2::video::WindowContext>
+}
+
+#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
+fn run_main_loop_infinitely(arg:&mut MainLoopArg) -> Result<(), String> {
+    loop {
+        main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator)?;
+    }
+}
+extern "C" {
+    fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32);
+    fn emscripten_cancel_main_loop();
+}
+#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
+const is_emscripten:bool=true;
+#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
+const is_emscripten:bool=false;
+
+    
+#[cfg(any(target_arch="x86_64",target_arch = "wasm32", target_arch = "asmjs"))]
+unsafe extern "C" fn packaged_main_loop(parg: *mut std::ffi::c_void) {
+    let arg = &mut *(parg as *mut MainLoopArg);
+    if let Err(_) = main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator) {
+        emscripten_cancel_main_loop();
     }
 }
 
+/*
+fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32) {
+    loop {
+        unsafe{f(arg)};
+    }
+}*/
+
+#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
+fn run_main_loop_infinitely<'a>(arg:&mut MainLoopArg) -> Result<(), String> {
+    unsafe{emscripten_set_main_loop_arg(packaged_main_loop, arg as *mut _ as *mut std::ffi::c_void, -1, 0);}
+    Ok(())
+}
+
+fn main_loop<'a>(sdl_context: &sdl2::Sdl, scene_state: &mut SceneState, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, images: &mut Images<'a>, keys_down: &mut HashMap<Keycode, ()>, texture_creator:&'a sdl2::render::TextureCreator<sdl2::video::WindowContext>) -> Result<(), String> {
+    let loop_start_time = time::Instant::now();
+    let mut events = sdl_context.event_pump()?;
+    if keys_down.len() != 0 {
+        for event in events.poll_iter() {
+            process(scene_state, images, event, keys_down)?; // always break
+        }
+        scene_state.scene_graph.prepare_textures(&texture_creator, images)?;
+        scene_state.render(canvas, images)?; // mut images only needed for color mod
+        let mut process_time = loop_start_time.elapsed();
+        if keys_down.len() != 0 {
+            while process_time < scene_state.duration_per_frame {
+                process_time = loop_start_time.elapsed();
+                let mut any_events = false;
+                for event in events.poll_iter() {
+                    process(scene_state, images, event, keys_down)?; // always break
+                    any_events = true;
+                }
+                if any_events {
+                    scene_state.scene_graph.prepare_textures(&texture_creator, images)?;
+                    scene_state.render(canvas, images)?;
+                }
+            }
+            if scene_state.duration_per_frame > DELTA_DURATION_PER_FRAME + DESIRED_DURATION_PER_FRAME {
+                scene_state.duration_per_frame -= DELTA_DURATION_PER_FRAME;
+            } else {
+                scene_state.duration_per_frame = DESIRED_DURATION_PER_FRAME;
+            }
+            scene_state.apply_keys(&keys_down, None, true);
+            scene_state.scene_graph.prepare_textures(&texture_creator, images)?;
+            scene_state.render(canvas, images)?;
+        }
+    } else {
+        scene_state.duration_per_frame = START_DURATION_PER_FRAME;
+        if is_emscripten {
+            for event in events.poll_iter() {
+                process(scene_state, images, event, keys_down)?;
+                break;
+            }
+        } else {
+            for event in events.wait_iter() {
+                process(scene_state, images, event, keys_down)?;
+                break;
+            }
+        }
+        scene_state.scene_graph.prepare_textures(&texture_creator, images)?;
+        scene_state.render(canvas, images)?;
+    };
+    Ok(())
+}
 fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
     let mut f = fs::File::create(filename)?;
     f.write(s.as_bytes())?;

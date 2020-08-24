@@ -21,3 +21,7 @@ name="stamps"
 "regex" = {version="1"}
 
 
+[target.wasm32-unknown-emscripten]
+rustflags = [
+    "-C", "link-arg=-s", "-C", "link-arg=USE_SDL=2",
+]
