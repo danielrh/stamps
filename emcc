@@ -1,0 +1,11 @@
+#!/usr/bin/python
+import subprocess
+import sys
+import os
+sys.argv.append("-s")
+sys.argv.append("USE_SDL=2")
+for index in range(2, len(sys.argv)):
+  if "SDL2" in sys.argv[index]:
+     sys.argv = sys.argv[:index-1] + sys.argv[index+1:]
+     break
+print(subprocess.check_output([os.path.join(os.path.dirname(os.environ['EM_CACHE']), "emcc")] + sys.argv[1:]))
