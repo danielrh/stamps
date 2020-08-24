@@ -334,10 +334,9 @@ fn pack_polygon_points(input: &[F64Point]) -> String {
 
 const URL_REGEX_STR: &'static str = r"url\(#([^\)]+)\)";
 fn parse_url_from_mask<'a>(mask:&'a str) -> Result<&'a str, String> {
-    lazy_static! {
-        static ref URL_REGEX: Regex = Regex::new(URL_REGEX_STR).unwrap();
-    };
-    let matches_opt = URL_REGEX.captures(mask);
+    let url_regex = Regex::new(URL_REGEX_STR).unwrap(); // don't use lazy static dependency
+    // only happens during IO, so the simplicity is worth it
+    let matches_opt = url_regex.captures(mask);
     if let Some(matches) = matches_opt{
         if let Some(ret) = matches.get(1) {
             return Ok(ret.as_str());
@@ -349,10 +348,9 @@ fn parse_url_from_mask<'a>(mask:&'a str) -> Result<&'a str, String> {
 }
 const TFORM_REGEX_STR: &'static str = r"^\s*(?:scale\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?\s*(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?(?:rotate\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\s*\)?)\s*$";
 fn gen_transform_deserializer(input:&str) -> Result<Transform, String> {
-  lazy_static! {
-    static ref TFORM: Regex = Regex::new(TFORM_REGEX_STR).unwrap();
-  };
-  let matches_opt = TFORM.captures(input);
+  let tform = Regex::new(TFORM_REGEX_STR).unwrap(); // don't use lazy static dependency
+  // only happens during IO, so the simplicity is worth it
+  let matches_opt = tform.captures(input);
   if matches_opt.is_none() {
     return Err("No matches for ".to_string() + input)
   }
