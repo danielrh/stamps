@@ -4,8 +4,19 @@ import sys
 import os
 sys.argv.append("-s")
 sys.argv.append("USE_SDL=2")
+sys.argv.append("-s")
+sys.argv.append("ALLOW_MEMORY_GROWTH=1")
 for index in range(2, len(sys.argv)):
   if "SDL2" in sys.argv[index]:
      sys.argv = sys.argv[:index-1] + sys.argv[index+1:]
      break
+sys.argv.append("--embed-file")
+sys.argv.append("assets")
 print(subprocess.check_output([os.path.join(os.path.dirname(os.environ['EM_CACHE']), "emcc")] + sys.argv[1:]))
+has_js_index = None
+for index in range(2, len(sys.argv)):
+   if sys.argv[index].endswith('stamps.js'):
+     has_js_index = index
+if has_js_index is not None:
+  sys.argv[has_js_index] = sys.argv[has_js_index].replace(".js",".html")
+  print(subprocess.check_output([os.path.join(os.path.dirname(os.environ['EM_CACHE']), "emcc")] + sys.argv[1:]))

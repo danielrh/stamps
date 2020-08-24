@@ -950,12 +950,14 @@ fn read_to_string(filename: &Path) ->  Result<String, io::Error> {
     Ok(buffer)
 }
 fn main() -> Result<(), String> {
-    let args: Vec<_> = env::args().collect();
+    let mut args: Vec<_> = env::args().collect();
 
-    if args.len() < 2 {
+    while args.len() < 2 {
         println!("Usage: cargo run /path/to/result");
-        Ok(())
-    } else {
+        args.push("example.svg".to_string())
+
+    }
+    {
         let save_file_name = &Path::new(&args[1]);
         let svg = if let Ok(file_data) = read_to_string(save_file_name) {
             SVG::from_str(&file_data).unwrap()
