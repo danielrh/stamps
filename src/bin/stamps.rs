@@ -9,7 +9,7 @@ use std::vec::Vec;
 use std::path::Path;
 use std::fs;
 use sdl2::event::Event;
-use sdl2::image::{LoadSurface, InitFlag};
+
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::Cursor;
 use sdl2::pixels::Color;
@@ -820,7 +820,7 @@ fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb:
 pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
-    let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
+    //let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let window = video_subsystem.window("rust-sdl2 demo: Cursor", 800, 600)
       .position_centered()
       .build()
@@ -829,12 +829,12 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let wsize = window.size();
     let mut canvas = window.into_canvas().software().build().map_err(|e| e.to_string())?;
     let mut keys_down = HashMap::<Keycode, ()>::new();
-    let surface = Surface::from_file(dir.join("cursor.png"))
+    let surface = Surface::load_bmp(dir.join("cursor.bmp"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     svg.resize(wsize.0, wsize.1);
-    let mask_surface_path = dir.join("mask.png");
+    let mask_surface_path = dir.join("mask.bmp");
     let mask_surface_name = mask_surface_path.to_str().unwrap().to_string();
-    let mask_surface = Surface::from_file(mask_surface_path)
+    let mask_surface = Surface::load_bmp(mask_surface_path)
         .map_err(|err| format!("Failed to load mask paper image: {}", err))?;
     let mut scene_state = SceneState {
         scene_graph:SceneGraph{
@@ -867,9 +867,9 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
     scene_state.mask_transforms[1].tx = 0.0;
     scene_state.mask_transforms[1].ty = 10.0 - scene_state.mask_transforms[0].midy * 2.0;
-    let cursor_surface_path = dir.join("cursor.png");
+    let cursor_surface_path = dir.join("cursor.bmp");
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
-    let cursor_surface = Surface::from_file(cursor_surface_path)
+    let cursor_surface = Surface::load_bmp(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     let texture_creator = canvas.texture_creator();
     
@@ -880,7 +880,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         max_selectable_stamp:0,
     };
     process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
-        let stamp_surface = Surface::from_file(p.path()).map_err(
+        let stamp_surface = Surface::load_bmp(p.path()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
         images.stamps.push(make_texture_surface!(texture_creator, stamp_surface, p.path().to_str().unwrap().to_string()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("?X?"), err)))?);

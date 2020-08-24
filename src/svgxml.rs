@@ -341,7 +341,7 @@ fn parse_url_from_mask<'a>(mask:&'a str) -> Result<&'a str, String> {
         if let Some(ret) = matches.get(1) {
             return Ok(ret.as_str());
         } else {
-            return Err("No url(#something.png) matches for ".to_string() + mask);
+            return Err("No url(#something.bmp) matches for ".to_string() + mask);
         }
     }
     Err("Unable to extract relative image url from match".to_string() + mask)
@@ -518,7 +518,7 @@ impl defs {
 	    }
 	}
 	for active_image in active_images {
-        let svg_filename = active_image.replace("/stamps/","/").replace(".png", ".svg");
+        let svg_filename = active_image.replace("/stamps/","/").replace(".bmp", ".svg");
         let asset_xml = read_to_string(&Path::new(&svg_filename))?;
 	    //ret.push(format!("<mask id=\"{}\"><image x=\"0\" y=\"0\" width=\"64\" height=\"64\" href=\"{}\"/></mask>\n",active_image, svg_filename));
         ret.push(format!("<mask id=\"{}\">{}</mask>\n",active_image, asset_xml));
@@ -596,13 +596,13 @@ mod test {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#assets/stamps/larch.png)"/>
+<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#assets/stamps/larch.bmp)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#assets/stamps/rarch.png)"/>
+<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#assets/stamps/rarch.bmp)"/>
 </g>
 <defs>
-<mask id="assets/stamps/larch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+<mask id="assets/stamps/larch.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="larch">
       <g>
@@ -616,7 +616,7 @@ mod test {
   </g>
 </svg>
 </mask>
-<mask id="assets/stamps/rarch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+<mask id="assets/stamps/rarch.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="rarch">
       <g>
@@ -646,7 +646,7 @@ mod test {
                         y:0,
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"assets/stamps/larch.png".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/larch.bmp".to_string(),clip:String::new()},
                     }
                 },
                 g{
@@ -657,15 +657,15 @@ mod test {
                         y:0,
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"assets/stamps/rarch.png".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/rarch.bmp".to_string(),clip:String::new()},
                     }                        
                 },
             ],
             defs:defs{
                 clipPath:Vec::new(),
                 mask:vec![
-                    Mask { id: "assets/stamps/larch.png".to_string() },
-                    Mask { id: "assets/stamps/rarch.png".to_string() }
+                    Mask { id: "assets/stamps/larch.bmp".to_string() },
+                    Mask { id: "assets/stamps/rarch.bmp".to_string() }
                 ],
             },
         };
@@ -681,10 +681,10 @@ mod test {
         use super::{SVG, HrefAndClipMask, Image, Transform, g, defs, Polygon, ClipPath};
         let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#040506" mask="url(#assets/stamps/larch.png)" clip-path="url(#clippy)"/>
+<rect x="0" y="0" width="128" height="128" fill="#040506" mask="url(#assets/stamps/larch.bmp)" clip-path="url(#clippy)"/>
 </g>
 <g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
-<rect x="0" y="0" width="128" height="128" fill="#00ff00" mask="url(#assets/stamps/rarch.png)"/>
+<rect x="0" y="0" width="128" height="128" fill="#00ff00" mask="url(#assets/stamps/rarch.bmp)"/>
 </g>
 <defs>
 <clipPath id="hellote">
@@ -693,7 +693,7 @@ mod test {
 <clipPath id="goodbyte">
 <polygon points="0 0,1 1,2 2,-3 3"/>
 </clipPath>
-<mask id="assets/stamps/larch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+<mask id="assets/stamps/larch.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="larch">
       <g>
@@ -707,7 +707,7 @@ mod test {
   </g>
 </svg>
 </mask>
-<mask id="assets/stamps/rarch.png"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+<mask id="assets/stamps/rarch.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <mask id="rarch">
       <g>
@@ -736,7 +736,7 @@ mod test {
 			fill:Color{r:4,g:5,b:6},
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"assets/stamps/larch.png".to_string(),clip:"url(#clippy)".to_string()},
+                        href:HrefAndClipMask{url:"assets/stamps/larch.bmp".to_string(),clip:"url(#clippy)".to_string()},
                     }
                 },
                 g{
@@ -747,14 +747,14 @@ mod test {
 			fill:Color{r:0,g:255,b:0},
                         height:128,
                         width:128,
-                        href:HrefAndClipMask{url:"assets/stamps/rarch.png".to_string(),clip:String::new()},
+                        href:HrefAndClipMask{url:"assets/stamps/rarch.bmp".to_string(),clip:String::new()},
                     }                        
                 },
             ],
             defs:defs{
                 mask:vec![
-                    Mask { id: "assets/stamps/larch.png".to_string()},
-                    Mask { id: "assets/stamps/rarch.png".to_string()}
+                    Mask { id: "assets/stamps/larch.bmp".to_string()},
+                    Mask { id: "assets/stamps/rarch.bmp".to_string()}
                 ],
                 clipPath:vec![
                      ClipPath {
