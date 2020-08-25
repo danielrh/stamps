@@ -818,8 +818,8 @@ fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb:
 }
 
 pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String> {
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
+    let sdl_context = Box::new(sdl2::init()?);
+    let video_subsystem = Box::new(sdl_context.video()?);
     //let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let window = video_subsystem.window("rust-sdl2 demo: Cursor", 800, 600)
       .position_centered()
@@ -827,8 +827,8 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
       .map_err(|e| e.to_string())?;
 
     let wsize = window.size();
-    let mut canvas = window.into_canvas().software().build().map_err(|e| e.to_string())?;
-    let mut keys_down = HashMap::<Keycode, ()>::new();
+    let mut canvas = Box::new(window.into_canvas().software().build().map_err(|e| e.to_string())?);
+    let mut keys_down = Box::new(HashMap::<Keycode, ()>::new());
     let surface = Surface::load_bmp(dir.join("cursor.bmp"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     svg.resize(wsize.0, wsize.1);
@@ -836,7 +836,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let mask_surface_name = mask_surface_path.to_str().unwrap().to_string();
     let mask_surface = Surface::load_bmp(mask_surface_path)
         .map_err(|err| format!("Failed to load mask paper image: {}", err))?;
-    let mut scene_state = SceneState {
+    let mut scene_state = Box::new(SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
             inventory_map:HashMap::new(),
@@ -863,7 +863,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         window_height: canvas.viewport().height(),
         color:stamps::Color{r:0,g:0,b:0},
         locked:false,
-    };
+    });
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
     scene_state.mask_transforms[1].tx = 0.0;
     scene_state.mask_transforms[1].ty = 10.0 - scene_state.mask_transforms[0].midy * 2.0;
@@ -871,14 +871,14 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
     let cursor_surface = Surface::load_bmp(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
-    let texture_creator = canvas.texture_creator();
+    let texture_creator = Box::new(canvas.texture_creator());
     
-    let mut images = Images{
+    let mut images = Box::new(Images{
         mask:make_texture_surface!(texture_creator, mask_surface, mask_surface_name)?,
         default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
         stamps:Vec::new(),
         max_selectable_stamp:0,
-    };
+    });
     process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
         let stamp_surface = Surface::load_bmp(p.path()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
@@ -890,9 +890,28 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
-    run_main_loop_infinitely(&mut MainLoopArg{sdl_context:&sdl_context, scene_state:&mut scene_state, canvas:&mut canvas, images:&mut images, keys_down:&mut keys_down, texture_creator:&texture_creator})
+    let ret = run_main_loop_infinitely(&mut MainLoopArg{sdl_context:&*sdl_context, scene_state:&mut *scene_state, canvas:&mut *canvas, images:&mut *images, keys_down:&mut *keys_down, texture_creator:&*texture_creator});
+    if is_emscripten {
+        // these variables are being referenced in the "infinite" main loop above
+        // but since we need to return control to the browser, we must instruct
+        // the memory subsystem to forget about them so they may continue to be referenced by the callback
+        // this only happens in the "unsafe" world of emscripten
+        // we also need to make sure that these items are being allocated by malloc
+        // and not allocated on the stack, since that could result in its own type of UB
+        // if the function returned.
+        box_forget(keys_down);
+        box_forget(images);
+        box_forget(scene_state);
+        box_forget(texture_creator);
+        box_forget(canvas);
+        box_forget(video_subsystem);
+        box_forget(sdl_context);
+    }
+    ret
 }
-
+fn box_forget<T>(item: Box<T>) {
+    std::mem::forget(item);
+}
 struct MainLoopArg<'a, 'b>{
     sdl_context: &'a sdl2::Sdl,
     scene_state: &'a mut SceneState,
