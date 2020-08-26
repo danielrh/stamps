@@ -19,6 +19,9 @@ use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
+//#[cfg(target_os = "emscripten")]
+pub mod emscripten;
+
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
 static START_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(200);
 static RELAXED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
@@ -818,17 +821,18 @@ fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb:
 }
 
 pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String> {
-    let sdl_context = Box::new(sdl2::init()?);
-    let video_subsystem = Box::new(sdl_context.video()?);
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
     //let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
-    let window = video_subsystem.window("rust-sdl2 demo: Cursor", 800, 600)
+    let window = video_subsystem.window("wasm-demo", 1240, 768)
       .position_centered()
+      .opengl()
       .build()
       .map_err(|e| e.to_string())?;
 
     let wsize = window.size();
-    let mut canvas = Box::new(window.into_canvas().software().build().map_err(|e| e.to_string())?);
-    let mut keys_down = Box::new(HashMap::<Keycode, ()>::new());
+    let mut canvas = window.into_canvas().software().build().map_err(|e| e.to_string())?;
+    let mut keys_down = HashMap::<Keycode, ()>::new();
     let surface = Surface::load_bmp(dir.join("cursor.bmp"))
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
     svg.resize(wsize.0, wsize.1);
@@ -836,7 +840,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let mask_surface_name = mask_surface_path.to_str().unwrap().to_string();
     let mask_surface = Surface::load_bmp(mask_surface_path)
         .map_err(|err| format!("Failed to load mask paper image: {}", err))?;
-    let mut scene_state = Box::new(SceneState {
+    let mut scene_state = SceneState {
         scene_graph:SceneGraph{
             inventory:Vec::new(),
             inventory_map:HashMap::new(),
@@ -863,7 +867,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         window_height: canvas.viewport().height(),
         color:stamps::Color{r:0,g:0,b:0},
         locked:false,
-    });
+    };
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;
     scene_state.mask_transforms[1].tx = 0.0;
     scene_state.mask_transforms[1].ty = 10.0 - scene_state.mask_transforms[0].midy * 2.0;
@@ -871,14 +875,14 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let cursor_surface_name = cursor_surface_path.to_str().unwrap().to_string();
     let cursor_surface = Surface::load_bmp(cursor_surface_path)
         .map_err(|err| format!("failed to load cursor image: {}", err))?;
-    let texture_creator = Box::new(canvas.texture_creator());
+    let texture_creator = canvas.texture_creator();
     
-    let mut images = Box::new(Images{
+    let mut images = Images{
         mask:make_texture_surface!(texture_creator, mask_surface, mask_surface_name)?,
         default_cursor:make_texture_surface!(texture_creator, cursor_surface, cursor_surface_name)?,
         stamps:Vec::new(),
         max_selectable_stamp:0,
-    });
+    };
     process_dir(&dir.join("stamps"), &mut |p:&fs::DirEntry| {
         let stamp_surface = Surface::load_bmp(p.path()).map_err(
             |err| io::Error::new(io::ErrorKind::Other, format!("{}: {}", p.path().to_str().unwrap_or("??"), err)))?;
@@ -887,30 +891,19 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         images.max_selectable_stamp += 1;
         Ok(())
     }).map_err(|err| format!("Failed to load stamp {}", err))?;
-    //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
-    let ret = run_main_loop_infinitely(&mut MainLoopArg{sdl_context:&*sdl_context, scene_state:&mut *scene_state, canvas:&mut *canvas, images:&mut *images, keys_down:&mut *keys_down, texture_creator:&*texture_creator});
-    if is_emscripten {
-        // these variables are being referenced in the "infinite" main loop above
-        // but since we need to return control to the browser, we must instruct
-        // the memory subsystem to forget about them so they may continue to be referenced by the callback
-        // this only happens in the "unsafe" world of emscripten
-        // we also need to make sure that these items are being allocated by malloc
-        // and not allocated on the stack, since that could result in its own type of UB
-        // if the function returned.
-        box_forget(keys_down);
-        box_forget(images);
-        box_forget(scene_state);
-        box_forget(texture_creator);
-        box_forget(canvas);
-        box_forget(video_subsystem);
-        box_forget(sdl_context);
-    }
-    ret
-}
-fn box_forget<T>(item: Box<T>) {
-    std::mem::forget(item);
+    let mut main_lambda = || {
+        main_loop(&sdl_context, &mut scene_state, &mut canvas, &mut images, &mut keys_down, &texture_creator)
+    };
+    std::mem::forget(video_subsystem);
+    //#[cfg(target_os = "emscripten")]
+    use emscripten::emscripten;
+    //#[cfg(not(target_os = "emscripten"))]
+    //loop{main_lambda?;}
+    //#[cfg(target_os = "emscripten")]
+    emscripten::set_main_loop_callback(|| {main_lambda().unwrap();});
+    Ok(())
 }
 struct MainLoopArg<'a, 'b>{
     sdl_context: &'a sdl2::Sdl,
@@ -921,42 +914,11 @@ struct MainLoopArg<'a, 'b>{
     texture_creator:&'b sdl2::render::TextureCreator<sdl2::video::WindowContext>
 }
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
-fn run_main_loop_infinitely(arg:&mut MainLoopArg) -> Result<(), String> {
-    loop {
-        main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator)?;
-    }
-}
-extern "C" {
-    fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32);
-    fn emscripten_cancel_main_loop();
-}
-#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
-const is_emscripten:bool=true;
-#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
-const is_emscripten:bool=false;
+#[cfg(target_os = "emscripten")]
+const IS_EMSCRIPTEN:bool=true;
+#[cfg(not(target_os = "emscripten"))]
+const IS_EMSCRIPTEN:bool=false;
 
-    
-#[cfg(any(target_arch="x86_64",target_arch = "wasm32", target_arch = "asmjs"))]
-unsafe extern "C" fn packaged_main_loop(parg: *mut std::ffi::c_void) {
-    let arg = &mut *(parg as *mut MainLoopArg);
-    if let Err(_) = main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator) {
-        emscripten_cancel_main_loop();
-    }
-}
-
-/*
-fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32) {
-    loop {
-        unsafe{f(arg)};
-    }
-}*/
-
-#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
-fn run_main_loop_infinitely<'a>(arg:&mut MainLoopArg) -> Result<(), String> {
-    unsafe{emscripten_set_main_loop_arg(packaged_main_loop, arg as *mut _ as *mut std::ffi::c_void, -1, 0);}
-    Ok(())
-}
 
 fn main_loop<'a>(sdl_context: &sdl2::Sdl, scene_state: &mut SceneState, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, images: &mut Images<'a>, keys_down: &mut HashMap<Keycode, ()>, texture_creator:&'a sdl2::render::TextureCreator<sdl2::video::WindowContext>) -> Result<(), String> {
     let loop_start_time = time::Instant::now();
@@ -992,7 +954,7 @@ fn main_loop<'a>(sdl_context: &sdl2::Sdl, scene_state: &mut SceneState, canvas: 
         }
     } else {
         scene_state.duration_per_frame = START_DURATION_PER_FRAME;
-        if is_emscripten {
+        if IS_EMSCRIPTEN {
             for event in events.poll_iter() {
                 process(scene_state, images, event, keys_down)?;
                 break;
@@ -1021,6 +983,7 @@ fn read_to_string(filename: &Path) ->  Result<String, io::Error> {
     Ok(buffer)
 }
 fn main() -> Result<(), String> {
+    std::env::set_var("RUST_BACKTRACE", "1");
     let mut args: Vec<_> = env::args().collect();
 
     while args.len() < 2 {
@@ -1037,6 +1000,7 @@ fn main() -> Result<(), String> {
                 
         };
         let ret = run(svg, &args[1], Path::new("assets"));
+        unsafe{loop{em_loop_cb()};}
         match ret {
             Err(x) => {
                 if x == "Exit" {
@@ -1048,4 +1012,12 @@ fn main() -> Result<(), String> {
             ret => ret,
         }
     }
+}
+
+
+unsafe extern "C" fn nop() {
+}
+static mut em_loop_cb: unsafe extern "C" fn() = nop;
+pub unsafe extern "C" fn emscripten_set_main_loop(f:unsafe extern "C" fn(), a: i32, b:i32) {
+    unsafe{em_loop_cb = f;}
 }
