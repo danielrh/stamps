@@ -19,7 +19,7 @@ use sdl2::rect::{Rect, Point};
 use sdl2::surface::Surface;
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::render::Texture;
-//#[cfg(target_os = "emscripten")]
+#[cfg(target_os = "emscripten")]
 pub mod emscripten;
 
 static DESIRED_DURATION_PER_FRAME:time::Duration = time::Duration::from_millis(1);
@@ -894,15 +894,16 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
     let mut main_lambda = || {
+        let _vs = &video_subsystem;
         main_loop(&sdl_context, &mut scene_state, &mut canvas, &mut images, &mut keys_down, &texture_creator)
     };
-    std::mem::forget(video_subsystem);
-    //#[cfg(target_os = "emscripten")]
+    #[cfg(target_os = "emscripten")]
     use emscripten::emscripten;
-    //#[cfg(not(target_os = "emscripten"))]
-    //loop{main_lambda?;}
-    //#[cfg(target_os = "emscripten")]
+    #[cfg(not(target_os = "emscripten"))]
+    loop{main_lambda()?;}
+    #[cfg(target_os = "emscripten")]
     emscripten::set_main_loop_callback(|| {main_lambda().unwrap();});
+    panic!("UNINTENDED");
     Ok(())
 }
 struct MainLoopArg<'a, 'b>{
@@ -1000,7 +1001,7 @@ fn main() -> Result<(), String> {
                 
         };
         let ret = run(svg, &args[1], Path::new("assets"));
-        unsafe{loop{em_loop_cb()};}
+        //safe{loop{em_loop_cb()};}
         match ret {
             Err(x) => {
                 if x == "Exit" {
@@ -1014,10 +1015,11 @@ fn main() -> Result<(), String> {
     }
 }
 
-
+/*
 unsafe extern "C" fn nop() {
 }
 static mut em_loop_cb: unsafe extern "C" fn() = nop;
 pub unsafe extern "C" fn emscripten_set_main_loop(f:unsafe extern "C" fn(), a: i32, b:i32) {
     unsafe{em_loop_cb = f;}
 }
+*/
