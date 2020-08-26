@@ -822,9 +822,10 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     let video_subsystem = Box::new(sdl_context.video()?);
     //let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
     let window = video_subsystem.window("rust-sdl2 demo: Cursor", 800, 600)
-      .position_centered()
-      .build()
-      .map_err(|e| e.to_string())?;
+        .position_centered()
+        .opengl()
+        .build()
+        .map_err(|e| e.to_string())?;
 
     let wsize = window.size();
     let mut canvas = Box::new(window.into_canvas().software().build().map_err(|e| e.to_string())?);
@@ -890,8 +891,9 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
     //images.stamps.push(make_texture_surface!(texture_creator, xcursor_surface)?);
     scene_state.cursor.set();
     scene_state.compute_stamps_location(canvas.viewport(), &images);
-    let ret = run_main_loop_infinitely(&mut MainLoopArg{sdl_context:&*sdl_context, scene_state:&mut *scene_state, canvas:&mut *canvas, images:&mut *images, keys_down:&mut *keys_down, texture_creator:&*texture_creator});
-    if is_emscripten {
+    let mut main_loop_arg = Box::new(MainLoopArg{sdl_context:&*sdl_context, scene_state:&mut *scene_state, canvas:&mut *canvas, images:&mut *images, keys_down:&mut *keys_down, texture_creator:&*texture_creator});
+    let ret = run_main_loop_infinitely(&mut *main_loop_arg);
+    if IS_EMSCRIPTEN {
         // these variables are being referenced in the "infinite" main loop above
         // but since we need to return control to the browser, we must instruct
         // the memory subsystem to forget about them so they may continue to be referenced by the callback
@@ -899,6 +901,7 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String>
         // we also need to make sure that these items are being allocated by malloc
         // and not allocated on the stack, since that could result in its own type of UB
         // if the function returned.
+        box_forget(main_loop_arg);
         box_forget(keys_down);
         box_forget(images);
         box_forget(scene_state);
@@ -921,23 +924,24 @@ struct MainLoopArg<'a, 'b>{
     texture_creator:&'b sdl2::render::TextureCreator<sdl2::video::WindowContext>
 }
 
-#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
+#[cfg(not(target_os="emscripten"))]
 fn run_main_loop_infinitely(arg:&mut MainLoopArg) -> Result<(), String> {
     loop {
         main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator)?;
     }
 }
+#[cfg(target_os = "emscripten")]
 extern "C" {
     fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32);
-    fn emscripten_cancel_main_loop();
+   fn emscripten_cancel_main_loop();
 }
-#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
-const is_emscripten:bool=true;
-#[cfg(not(any(target_arch = "wasm32", target_arch = "asmjs")))]
-const is_emscripten:bool=false;
+#[cfg(target_os = "emscripten")]
+const IS_EMSCRIPTEN:bool=true;
+#[cfg(not(target_os = "emscripten"))]
+const IS_EMSCRIPTEN:bool=false;
 
     
-#[cfg(any(target_arch="x86_64",target_arch = "wasm32", target_arch = "asmjs"))]
+#[cfg(target_os = "emscripten")]
 unsafe extern "C" fn packaged_main_loop(parg: *mut std::ffi::c_void) {
     let arg = &mut *(parg as *mut MainLoopArg);
     if let Err(_) = main_loop(arg.sdl_context, arg.scene_state, arg.canvas, arg.images, arg.keys_down, arg.texture_creator) {
@@ -946,13 +950,20 @@ unsafe extern "C" fn packaged_main_loop(parg: *mut std::ffi::c_void) {
 }
 
 /*
-fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32) {
-    loop {
-        unsafe{f(arg)};
-    }
-}*/
-
-#[cfg(any(target_arch = "wasm32", target_arch = "asmjs"))]
+unsafe extern "C" fn nop(x:*mut std::ffi::c_void){
+}
+static mut g_cb :unsafe extern "C" fn(*mut std::ffi::c_void) = nop;
+static mut g_arg:*mut std::ffi::c_void = std::ptr::null_mut();
+static mut g_stop: bool = false;
+unsafe extern "C" fn emscripten_cancel_main_loop(){
+    g_stop = true;
+}
+unsafe extern "C" fn emscripten_set_main_loop_arg(f: unsafe extern "C" fn(*mut std::ffi::c_void), arg: *mut std::ffi::c_void, fps: i32, sim_infinite_loop:i32) {
+    g_cb = f;
+    g_arg = arg;
+}
+*/
+#[cfg(target_os = "emscripten")]
 fn run_main_loop_infinitely<'a>(arg:&mut MainLoopArg) -> Result<(), String> {
     unsafe{emscripten_set_main_loop_arg(packaged_main_loop, arg as *mut _ as *mut std::ffi::c_void, -1, 0);}
     Ok(())
@@ -992,7 +1003,7 @@ fn main_loop<'a>(sdl_context: &sdl2::Sdl, scene_state: &mut SceneState, canvas: 
         }
     } else {
         scene_state.duration_per_frame = START_DURATION_PER_FRAME;
-        if is_emscripten {
+        if IS_EMSCRIPTEN {
             for event in events.poll_iter() {
                 process(scene_state, images, event, keys_down)?;
                 break;
@@ -1037,6 +1048,7 @@ fn main() -> Result<(), String> {
                 
         };
         let ret = run(svg, &args[1], Path::new("assets"));
+        //safe{loop{g_cb(g_arg);if g_stop{ break;}}}
         match ret {
             Err(x) => {
                 if x == "Exit" {
