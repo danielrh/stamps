@@ -13,6 +13,7 @@ for index in range(2, len(sys.argv)):
 sys.argv.append("--embed-file")
 sys.argv.append("assets")
 print(subprocess.check_output([os.path.join(os.path.dirname(os.environ['EM_CACHE']), "emcc")] + sys.argv[1:]))
+exit(0)
 has_js_index = None
 for index in range(2, len(sys.argv)):
    if sys.argv[index].endswith('stamps.js'):

@@ -1036,12 +1036,21 @@ fn main() -> Result<(), String> {
 
     while args.len() < 2 {
         println!("Usage: cargo run /path/to/result");
+        
         args.push("example.svg".to_string())
 
     }
     {
         let save_file_name = &Path::new(&args[1]);
-        let svg = if let Ok(file_data) = read_to_string(save_file_name) {
+        let svg = if IS_EMSCRIPTEN {
+            let mut data = String::new();
+            std::io::stdin().read_to_string(&mut data).unwrap();
+            if data.len() == 0 {
+                SVG::new(1024,768)
+            } else {
+                SVG::from_str(&data).unwrap()
+            }
+        } else if let Ok(file_data) = read_to_string(save_file_name) {
             SVG::from_str(&file_data).unwrap()
         } else {
             SVG::new(1024,768)
