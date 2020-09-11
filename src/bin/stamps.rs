@@ -679,6 +679,13 @@ impl SceneState {
         }
     }
     fn click(&mut self) {
+        self.sub_click();
+        write_from_string(Path::new(&self.save_file_name),
+                          &self.scene_graph.arrangement.get().to_string().map_err(
+                              |err| format!("{:?}", err)).unwrap()).map_err(
+            |err| format!("{:?}", err)).unwrap();
+    }
+    fn sub_click(&mut self) {
         if let Some(hit) = self.scene_graph.hit_test(self.cursor_transform.mouse_x,
                                                      self.cursor_transform.mouse_y) {
             self.active_stamp = Some(hit.stamp_index);
@@ -1020,8 +1027,8 @@ fn main_loop<'a>(sdl_context: &sdl2::Sdl, scene_state: &mut SceneState, canvas: 
     Ok(())
 }
 fn write_from_string(filename: &Path, s: &String) -> Result<(), io::Error> {
-    let mut f = fs::File::create(filename)?;
-    f.write(s.as_bytes())?;
+    let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).open(filename)?;
+    file.write(s.as_bytes())?;
     Ok(())
 }
 
