@@ -680,6 +680,9 @@ impl SceneState {
     }
     fn click(&mut self) {
         self.sub_click();
+        if self.scene_graph.arrangement.svg.stamps.len() == 0 {
+            return;
+        }
         write_from_string(Path::new(&self.save_file_name),
                           &self.scene_graph.arrangement.get().to_string().map_err(
                               |err| format!("{:?}", err)).unwrap()).map_err(
@@ -1049,7 +1052,7 @@ fn main() -> Result<(), String> {
     }
     {
         let save_file_name = &Path::new(&args[1]);
-        let svg = if IS_EMSCRIPTEN {
+        let svg = /*(if IS_EMSCRIPTEN {
             let mut data = String::new();
             std::io::stdin().read_to_string(&mut data).unwrap();
             if data.len() == 0 {
@@ -1057,7 +1060,7 @@ fn main() -> Result<(), String> {
             } else {
                 SVG::from_str(&data).unwrap()
             }
-        } else if let Ok(file_data) = read_to_string(save_file_name) {
+        } else */if let Ok(file_data) = read_to_string(save_file_name) {
             SVG::from_str(&file_data).unwrap()
         } else {
             SVG::new(1024,768)

@@ -104,7 +104,7 @@
   <body>
 
     <div class="spinner" id='spinner'></div>
-    <div class="emscripten" id="status">Downloading...</div>
+    <div class="emscripten" id="status">Select New/Load...</div>
 
 <span id='controls'>
   <span><input type="checkbox" id="resize">Resize canvas</span>
@@ -123,6 +123,8 @@
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
     <textarea id="output" style="display:none" rows="8"></textarea>
+    <button id="new-button">New</button>
+    <input type="file" id="load-button">Load</button>
     <button id="save-link">Save</button>
     <button id="download-link">Download</button>
 
@@ -131,73 +133,73 @@
       var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
       var spinnerElement = document.getElementById('spinner');
+      var input = [];
       var Module = {
       preRun:[function() {
-      var input = '<svg version="2.0" width="800" height="600" xmlns="http://www.w3.org/2000/svg"><g transform="translate(393, 247) translate(32, 32) translate(-32, -32)"><rect x="0" y="0" width="64" height="64" fill="#000000" mask="url(#assets/stamps/smallcircle.bmp)"/></g><g transform="translate(442, 245) translate(32, 32) translate(-32, -32)"><rect x="0" y="0" width="64" height="64" fill="#000000" mask="url(#assets/stamps/medcircle.bmp)"/></g><g transform="translate(518, 242) translate(32, 32) translate(-32, -32)"><rect x="0" y="0" width="64" height="64" fill="#000000" mask="url(#assets/stamps/circle.bmp)"/></g><defs><clipPath id="0"><polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,-76 32,26 32,26 160,-76 160,-76 32,-128 -128,-674 -686,-572 -686,-572 -558,-674 -558,-674 -686,-128 -128"/></clipPath><clipPath id="1"><polygon points="-128 -128,128 -128,128 128,-128 128,-128 -128,-57 -31,45 -31,45 97,-57 97,-57 -31,-128 -128,-520 -749,-418 -749,-418 -621,-520 -621,-520 -749,-128 -128"/></clipPath><mask id="assets/stamps/circle.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">  <g transform="translate(0, 0)">    <circle stroke="white" fill="white" cx="32" cy="32" r="31"/>  </g></svg></mask><mask id="assets/stamps/medcircle.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">  <g transform="translate(0, 0)">    <circle stroke="white" fill="white" cx="32" cy="32" r="16"/>  </g></svg></mask><mask id="assets/stamps/smallcircle.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">  <g transform="translate(0, 0)">    <circle stroke="white" fill="white" cx="32" cy="32" r="8"/>  </g></svg></mask></defs></svg>';
-      FS.writeFile("example.svg", input, {});
-      var inputOffset = 0;
-      downloadURL = function(data, fileName, shouldDownload) {
-  var a;
-  a = document.createElement('a');
-      a.href = data;
-      if (shouldDownload) {
-      a.download = fileName;
-      } else {
-      a.target=fileName;
+      if (input.length != 0) {
+          FS.writeFile("example.svg", input, {"encoding":"binary"});
       }
-  document.body.appendChild(a);
-  a.style = 'display: none';
-  a.click();
-  a.remove();
-};
+      var inputOffset = 0;
+      var downloadURL = function(data, fileName, shouldDownload) {
+          var a;
+          a = document.createElement('a');
+          a.href = data;
+          if (shouldDownload) {
+              a.download = fileName;
+          } else {
+              a.target=fileName;
+          }
+          document.body.appendChild(a);
+          a.style = 'display: none';
+          a.click();
+          a.remove();
+      };
       function saveclick(){
-      saveordownload(false);
+          saveordownload(false);
       }
       function downloadclick(){
-      saveordownload(true);
+          saveordownload(true);
       }
       function saveordownload(shouldDownload) {
-      var svg_file = FS.readFile("example.svg",{"encoding":"binary"});
-      console.log(svg_file)
-       var blob = new Blob([svg_file], {type:"image/svg+xml"});
-      var blobUrl = URL.createObjectURL(blob);
-      downloadURL(blobUrl,"saved.svg", shouldDownload)
+          var svg_file = FS.readFile("example.svg",{"encoding":"binary"});
+          var blob = new Blob([svg_file], {type:"image/svg+xml"});
+          var blobUrl = URL.createObjectURL(blob);
+          downloadURL(blobUrl,"saved.svg", shouldDownload)
       
-      document.getElementById("download-link").href=blobUrl;
-       //window.open(blobUrl);
-    }
+          document.getElementById("download-link").href=blobUrl;
+          //window.open(blobUrl);
+      }
       document.getElementById("save-link").onclick = saveclick;
       document.getElementById("download-link").onclick = downloadclick;
-    function stdin() {
-      if (inputOffset < input.length) {
-        var code = input.charCodeAt(inputOffset);
-        ++inputOffset;
-        return code;
-      } else {
-        return null;
+      function stdin() {
+          if (inputOffset < input.length) {
+              var code = input[inputOffset];
+              ++inputOffset;
+              return code;
+          } else {
+              return null;
+          }
       }
-    }
 
-    var stdoutBuffer = "";
-    function stdout(code) {
-      svg_file[svg_file.length] = code;
-    }
-
-    var stderrBuffer = "";
-    function stderr(code) {
-      if (code === "\n".charCodeAt(0) && stderrBuffer !== "") {
-        console.log(stderrBuffer);
-        stderrBuffer = "";
-      } else {
-        stderrBuffer += String.fromCharCode(code);
+      var stdoutBuffer = "";
+      function stdout(code) {
+          svg_file[svg_file.length] = code;
       }
-    }
-    FS.init(stdin, stdout, stderr);
-  }],
-        postRun: [
+
+      var stderrBuffer = "";
+      function stderr(code) {
+          if (code === "\n".charCodeAt(0) && stderrBuffer !== "") {
+              stderrBuffer = "";
+          } else {
+              stderrBuffer += String.fromCharCode(code);
+          }
+      }
+      FS.init(stdin, stdout, stderr);
+      }],
+      postRun: [
             
-        ],
-        print: (function() {
+      ],
+      print: (function() {
           var element = document.getElementById('output');
           if (element) element.value = ''; // clear browser cache
           return function(text) {
@@ -213,12 +215,12 @@
               element.scrollTop = element.scrollHeight; // focus on bottom
             }
           };
-        })(),
-        printErr: function(text) {
+      })(),
+      printErr: function(text) {
           if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
           console.error(text);
-        },
-        canvas: (function() {
+      },
+      canvas: (function() {
           var canvas = document.getElementById('canvas');
 
           // As a default initial behavior, pop up an alert when webgl context is lost. To make your
@@ -227,8 +229,8 @@
           canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
 
           return canvas;
-        })(),
-        setStatus: function(text) {
+      })(),
+      setStatus: function(text) {
           if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
           if (text === Module.setStatus.last.text) return;
           var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
@@ -256,7 +258,6 @@
           Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
         }
       };
-      Module.setStatus('Downloading...');
       window.onerror = function(event) {
         // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
         Module.setStatus('Exception thrown, see JavaScript console');
@@ -265,7 +266,50 @@
           if (text) Module.printErr('[post-exception status] ' + text);
         };
       };
-    </script>
-    <script async type="text/javascript" src="target/wasm32-unknown-emscripten/release/stamps.js"></script>
+      function reloadPage() {
+         document.location.reload();
+      }
+      function initiateScript() {
+          Module.setStatus("Downloading")
+          var scr = document.createElement("script");
+          scr.async = "true";
+          scr.type = "text/javascript";
+          scr.src = "target/wasm32-unknown-emscripten/release/stamps.js";
+          document.body.append(scr);
+          document.getElementById("new-button").onclick = reloadPage;
+          document.getElementById("load-button").style.display="none"
+      }
+      function newsvg() {
+         initiateScript();
+      }
+      document.getElementById("new-button").onclick = newsvg
+      function handleDragOver(event) {
+          event.stopPropagation();
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'copy';
+      }
+      function handleDrop(event) {
+          var files = this.files;
+          if (event && event.dataTransfer) {
+              event.stopPropagation();
+              event.preventDefault();
+              files = event.dataTransfer.files;
+          }
+          if (files.length === 0) {
+              return;
+          }
+          function fileReaderCallback(event) {
+              input = new Uint8Array(event.target.result);
+              document.getElementById("load-button").style.display="none";
+              window.setTimeout(initiateScript, 0)
+          }
+          var fileReader = new FileReader();
+          fileReader.onload = fileReaderCallback;
+          fileReader.readAsArrayBuffer(files[0]);
+      }
+      document.getElementById("load-button").onDragOver = handleDragOver
+      document.getElementById("load-button").onchange = handleDrop
+     </script>
+    <!--<script async type="text/javascript" src="target/wasm32-unknown-emscripten/release/stamps.js"></script>-->
   </body>
 </html>

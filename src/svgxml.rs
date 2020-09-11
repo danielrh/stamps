@@ -576,12 +576,20 @@ impl SVG {
         for (serialized, deserialized) in ret.iter_mut().zip(self.stamps.iter())   {
             *serialized = deserialized.to_string()?;
         }
-       
+        let mut max_width = self.width;
+        let mut max_height = self.height;
+        for stamp in &self.stamps {
+            let diag = ((stamp.transform.midx * stamp.transform.midx) + (stamp.transform.midy * stamp.transform.midy)).sqrt();
+            let x = (stamp.transform.tx + diag + stamp.transform.midx) as u32;
+            let y = (stamp.transform.ty + diag + stamp.transform.midy) as u32;
+            max_width = std::cmp::max(max_width, x);
+            max_height = std::cmp::max(max_height, y);
+        }
         Ok(format!(
             "<svg version=\"{}\" width=\"{}\" height=\"{}\" xmlns=\"http://www.w3.org/2000/svg\">\n{}\n{}</svg>",
             self.version,
-            self.width,
-            self.height,
+            max_width,
+            max_height,
             ret.join("\n"),
             self.defs.to_string(&self.stamps)?
         ))
