@@ -827,13 +827,12 @@ fn process_dir<F: FnMut(&fs::DirEntry) -> Result<(), io::Error>>(dir: &Path, cb:
     Ok(())
 }
 
-pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path) -> Result<(), String> {
+pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path, width:u32, height:u32) -> Result<(), String> {
     let sdl_context = Box::new(sdl2::init()?);
     let video_subsystem = Box::new(sdl_context.video()?);
     //let _image_context = sdl2::image::init(InitFlag::PNG | InitFlag::JPG)?;
-    let window = video_subsystem.window("rust-sdl2 demo: Cursor", 800, 600)
+    let window = video_subsystem.window("rust-sdl2 demo: Cursor",  width, height)
         .position_centered()
-        .opengl()
         .build()
         .map_err(|e| e.to_string())?;
 
@@ -1043,7 +1042,25 @@ fn read_to_string(filename: &Path) ->  Result<String, io::Error> {
 }
 fn main() -> Result<(), String> {
     let mut args: Vec<_> = env::args().collect();
-
+    let mut fnargs = args.clone();
+    fnargs.clear();
+    let mut width = 800;
+    let mut height = 600;
+    for arg in &mut args {
+        if arg.starts_with("--width=") {
+            for item in arg.rsplit('=') {
+                width = item.parse::<u32>().unwrap();
+                break;
+            }
+        } else if arg.starts_with("--height=") {
+            for item in arg.rsplit('=') {
+                height = item.parse::<u32>().unwrap();
+                break;
+            }            
+        } else {
+            fnargs.push(std::mem::replace(arg, String::new()));
+        }
+    }
     while args.len() < 2 {
         println!("Usage: cargo run /path/to/result");
         
@@ -1066,7 +1083,7 @@ fn main() -> Result<(), String> {
             SVG::new(1024,768)
                 
         };
-        let ret = run(svg, &args[1], Path::new("assets"));
+        let ret = run(svg, &args[1], Path::new("assets"), width, height);
         //safe{loop{g_cb(g_arg);if g_stop{ break;}}}
         match ret {
             Err(x) => {

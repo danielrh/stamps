@@ -107,11 +107,18 @@
     <div class="emscripten" id="status">Select New/Load...</div>
 
 <span id='controls'>
+      <span><button id="new-button">New</button></span>
+    <span><input type="file" id="load-button">Load</button></span>
+    <span><button id="save-link">Save</button></span>
+    <span><button id="download-link">Download</button></span>
+<!--
   <span><input type="checkbox" id="resize">Resize canvas</span>
-  <span><input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer &nbsp;&nbsp;&nbsp;</span>
+  <span><input type="checkbox" id="pointerLock" checked>Lock/hide mouse
+    pointer &nbsp;&nbsp;&nbsp;</span>
   <span><input type="button" value="Fullscreen" onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked, 
                                                                             document.getElementById('resize').checked)">
   </span>
+-->
 </span>
 
     <div class="emscripten">
@@ -123,10 +130,6 @@
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
     <textarea id="output" style="display:none" rows="8"></textarea>
-    <button id="new-button">New</button>
-    <input type="file" id="load-button">Load</button>
-    <button id="save-link">Save</button>
-    <button id="download-link">Download</button>
 
     <script type='text/javascript'>
       var svg_file = []
@@ -199,6 +202,8 @@
       postRun: [
             
       ],
+      arguments: [
+      ],
       print: (function() {
           var element = document.getElementById('output');
           if (element) element.value = ''; // clear browser cache
@@ -222,7 +227,6 @@
       },
       canvas: (function() {
           var canvas = document.getElementById('canvas');
-
           // As a default initial behavior, pop up an alert when webgl context is lost. To make your
           // application robust, you may want to override this behavior before shipping!
           // See http://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15.2
@@ -270,6 +274,9 @@
          document.location.reload();
       }
       function initiateScript() {
+          Module['arguments'].push('--width=' + document.body.clientWidth);
+          Module['arguments'].push('--height=' + document.body.clientHeight -
+                       document.getElementById("controls").clientHeight);
           Module.setStatus("Downloading")
           var scr = document.createElement("script");
           scr.async = "true";
