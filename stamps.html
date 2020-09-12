@@ -174,6 +174,7 @@
       }
       document.getElementById("save-link").onclick = saveclick;
       document.getElementById("download-link").onclick = downloadclick;
+
       function stdin() {
           if (inputOffset < input.length) {
               var code = input[inputOffset];
@@ -186,13 +187,15 @@
 
       var stdoutBuffer = "";
       function stdout(code) {
-          svg_file[svg_file.length] = code;
+                            //svg_file[svg_file.length] = code;
+                            console.log(String.fromCharCode(code));
       }
 
       var stderrBuffer = "";
       function stderr(code) {
           if (code === "\n".charCodeAt(0) && stderrBuffer !== "") {
-              stderrBuffer = "";
+                            console.log(stderrBuffer);
+                            stderrBuffer = "";
           } else {
               stderrBuffer += String.fromCharCode(code);
           }
@@ -275,8 +278,9 @@
       }
       function initiateScript() {
           Module['arguments'].push('--width=' + document.body.clientWidth);
-          Module['arguments'].push('--height=' + document.body.clientHeight -
-                       document.getElementById("controls").clientHeight);
+          Module['arguments'].push('--height=' + (window.innerHeight -
+                       document.getElementById("controls").clientHeight));
+          Module['arguments'].push("example.svg");
           Module.setStatus("Downloading")
           var scr = document.createElement("script");
           scr.async = "true";

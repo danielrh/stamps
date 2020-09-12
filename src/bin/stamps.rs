@@ -260,7 +260,7 @@ impl SceneGraph {
               });
               let new_index = images.stamps.len();
               images.stamps.push(make_texture_surface!(texture_creator, dst_surface, name)?);
-              eprintln!("Making texture surface {:?} {}\n", g.rect.href.clone(), new_index);
+              //eprintln!("Making texture surface {:?} {}\n", g.rect.href.clone(), new_index);
               self.inventory_map.insert(
                   g.rect.href.clone(),
                    new_index,
@@ -775,7 +775,7 @@ fn process(state: &mut SceneState, images: &mut Images, event: sdl2::event::Even
              if let None = keys_down.insert(key_code, ()) {
                 repeat = false;
                 for (key,_)in keys_down.iter() {
-                    eprintln!("Key is down {}\n", *key)
+                    //eprintln!("Key is down {}\n", *key)
                 }
             } else {
                 //eprintln!("EXTRA?");
@@ -1061,14 +1061,13 @@ fn main() -> Result<(), String> {
             fnargs.push(std::mem::replace(arg, String::new()));
         }
     }
-    while args.len() < 2 {
-        println!("Usage: cargo run /path/to/result");
-        
-        args.push("example.svg".to_string())
+    while fnargs.len() < 2 {
+        eprintln!("Usage: cargo run /path/to/result");
+        fnargs.push("example.svg".to_string())
 
     }
     {
-        let save_file_name = &Path::new(&args[1]);
+        let save_file_name = &Path::new(&fnargs[1]);
         let svg = /*(if IS_EMSCRIPTEN {
             let mut data = String::new();
             std::io::stdin().read_to_string(&mut data).unwrap();
@@ -1083,7 +1082,7 @@ fn main() -> Result<(), String> {
             SVG::new(1024,768)
                 
         };
-        let ret = run(svg, &args[1], Path::new("assets"), width, height);
+        let ret = run(svg, &fnargs[1], Path::new("assets"), width, height);
         //safe{loop{g_cb(g_arg);if g_stop{ break;}}}
         match ret {
             Err(x) => {
