@@ -1,6 +1,6 @@
 extern crate sdl2;
-extern crate stamps;
-use stamps::{SVG, HrefAndClipMask, Polygon};
+extern crate art_stamps;
+use art_stamps::{SVG, HrefAndClipMask, Polygon};
 use std::time;
 use std::string::String;
 use std::collections::HashMap;
@@ -41,10 +41,10 @@ fn mouse_move(delta:i32, repeat:time::Duration) -> i32 {
 }
 
 
-fn box_intersect (t0: &stamps::Transform, t1: &stamps::Transform) -> bool {
-    stamps::poly_edge_intersect(&t0.to_bbox(), &t1.to_bbox())
+fn box_intersect (t0: &art_stamps::Transform, t1: &art_stamps::Transform) -> bool {
+    art_stamps::poly_edge_intersect(&t0.to_bbox(), &t1.to_bbox())
 }
-fn constrain_mask_transform(t: &mut stamps::Transform, width: u32, height: u32) {
+fn constrain_mask_transform(t: &mut art_stamps::Transform, width: u32, height: u32) {
     if t.tx > width as f64 {
         t.tx = width as f64;
     }
@@ -98,19 +98,19 @@ struct InventoryKey{
     clip: String,
 }
 struct Arrangement{
-    svg: stamps::SVG,
+    svg: art_stamps::SVG,
     dirty: bool,
-    undo: Vec<stamps::g>,
+    undo: Vec<art_stamps::g>,
 }
 impl Arrangement {
-    pub fn new(svg: stamps::SVG) -> Self {
+    pub fn new(svg: art_stamps::SVG) -> Self {
         Arrangement{svg:svg, dirty:true, undo:Vec::new()}
     }
-    pub fn get_mut(&mut self) -> &mut stamps::SVG {
+    pub fn get_mut(&mut self) -> &mut art_stamps::SVG {
         self.dirty = true;
         &mut self.svg
     }
-    pub fn get(&self) -> &stamps::SVG{
+    pub fn get(&self) -> &art_stamps::SVG{
         &self.svg
     }
 }
@@ -284,23 +284,23 @@ struct Images<'r> {
 struct CursorTransform {
     mouse_x: i32,
     mouse_y: i32,
-    transform: stamps::Transform,    
+    transform: art_stamps::Transform,    
 }
 
 struct SceneState{
     scene_graph: SceneGraph,
     cursor_transform: CursorTransform,
     duration_per_frame: time::Duration, // how long to wait while key is held down
-    mask_transforms: [stamps::Transform;2],
+    mask_transforms: [art_stamps::Transform;2],
     last_return_mouse: Option<CursorTransform>,
     cursor: Cursor,
     active_stamp: Option<usize>,
     stamp_used: bool,
-    camera_transform: stamps::Transform,
+    camera_transform: art_stamps::Transform,
     save_file_name: String,
     window_width: u32,
     window_height: u32,
-    color: stamps::Color,
+    color: art_stamps::Color,
     locked: bool,
 }
 
@@ -342,7 +342,7 @@ impl SceneState {
         //canvas.fill_rect(Rect::new(self.mouse_x, self.mouse_y, 1, 1))?;
         for g in self.scene_graph.arrangement.get().stamps.iter() {
             if let Some(index) = self.scene_graph.inventory_map.get(&g.rect.href) {
-                let final_transform = stamps::compose(&self.camera_transform, &g.transform);
+                let final_transform = art_stamps::compose(&self.camera_transform, &g.transform);
                 let img = &mut images.stamps[*index];
 		img.texture.set_color_mod(g.rect.fill.r,g.rect.fill.g,g.rect.fill.b);
                 canvas.copy_ex(
@@ -401,7 +401,7 @@ impl SceneState {
             ).map_err(|err| format!("{:?}", err))?;
         }
         for mask in self.mask_transforms.iter() {
-            let final_mask_transform = stamps::compose(&self.camera_transform, mask);
+            let final_mask_transform = art_stamps::compose(&self.camera_transform, mask);
             canvas.copy_ex(
                 &images.mask.texture,
                 None,
@@ -477,56 +477,56 @@ impl SceneState {
         }
         if keys_down.contains_key(&Keycode::Num1) {
             if shifted_index != 0 {
-	        self.color = stamps::Color{r:0x2b,g:0x14,b:0x0e};
+	        self.color = art_stamps::Color{r:0x2b,g:0x14,b:0x0e};
 	    } else {
-                self.color = stamps::Color{r:0xee,g:0x40,b:0x35};
+                self.color = art_stamps::Color{r:0xee,g:0x40,b:0x35};
             }
         }
         if keys_down.contains_key(&Keycode::Num2) {
-            self.color = stamps::Color{r:0xf3,g:0x77,b:0x36};
+            self.color = art_stamps::Color{r:0xf3,g:0x77,b:0x36};
         }
         if keys_down.contains_key(&Keycode::Num3) {
             if shifted_index != 0 {
-                self.color = stamps::Color{r:0xfd,g:0xf5,b:0xb0};
+                self.color = art_stamps::Color{r:0xfd,g:0xf5,b:0xb0};
             } else {
-                self.color = stamps::Color{r:0xff,g:0xa7,b:0x00};
+                self.color = art_stamps::Color{r:0xff,g:0xa7,b:0x00};
             }
         }
         if keys_down.contains_key(&Keycode::Num4) {
             if shifted_index != 0 {
-                self.color = stamps::Color{r:0x7b,g:0xc0,b:0x43};
+                self.color = art_stamps::Color{r:0x7b,g:0xc0,b:0x43};
             } else {
-                self.color = stamps::Color{r:0x00,g:0x87,b:0x44};
+                self.color = art_stamps::Color{r:0x00,g:0x87,b:0x44};
             }
         }
         if keys_down.contains_key(&Keycode::Num5) {
             if shifted_index != 0 {
-                self.color = stamps::Color{r:0xc0,g:0xc2,b:0xce};
+                self.color = art_stamps::Color{r:0xc0,g:0xc2,b:0xce};
             } else {
-                self.color = stamps::Color{r:0x03,g:0x92,b:0xcf};
+                self.color = art_stamps::Color{r:0x03,g:0x92,b:0xcf};
             }
         }
         if keys_down.contains_key(&Keycode::Num6) {
             if shifted_index == 0 {
-                self.color = stamps::Color{r:0x40,g:0x40,b:0x40};
+                self.color = art_stamps::Color{r:0x40,g:0x40,b:0x40};
             } else {
-                self.color = stamps::Color{r:0x80,g:0x80,b:0x80};
+                self.color = art_stamps::Color{r:0x80,g:0x80,b:0x80};
             }
         }
         if keys_down.contains_key(&Keycode::Num7) {
-            self.color = stamps::Color{r:0x88,g:0x74,b:0xa3};
+            self.color = art_stamps::Color{r:0x88,g:0x74,b:0xa3};
         }
         if keys_down.contains_key(&Keycode::Num8) {
-            self.color = stamps::Color{r:0x3d,g:0x1e,b:0x6d};
+            self.color = art_stamps::Color{r:0x3d,g:0x1e,b:0x6d};
         }
         if keys_down.contains_key(&Keycode::Num9) {
-            self.color = stamps::Color{r:0x3d,g:0x23,b:0x52};
+            self.color = art_stamps::Color{r:0x3d,g:0x23,b:0x52};
         }
         if keys_down.contains_key(&Keycode::Num0) {
-            self.color = stamps::Color{r:0x2e,g:0x00,b:0x3e};
+            self.color = art_stamps::Color{r:0x2e,g:0x00,b:0x3e};
         }
         if keys_down.contains_key(&Keycode::Minus) {
-            self.color = stamps::Color{r:0x0,g:0x0,b:0x0};
+            self.color = art_stamps::Color{r:0x0,g:0x0,b:0x0};
         }
 
         if keys_down.contains_key(&Keycode::R) {
@@ -693,7 +693,7 @@ impl SceneState {
                                                      self.cursor_transform.mouse_y) {
             self.active_stamp = Some(hit.stamp_index);
             self.stamp_used = false;
-            self.cursor_transform.transform = stamps::Transform::new(hit.stamp_source.width(),
+            self.cursor_transform.transform = art_stamps::Transform::new(hit.stamp_source.width(),
                                                                      hit.stamp_source.height());
             self.cursor_transform.transform.rotate += hit.rot_delta;
         } else if let Some(active_stamp) = self.active_stamp{ // draw the stamp
@@ -711,7 +711,7 @@ impl SceneState {
             }
             let clip_mask;
             if any_intersect {
-                let mut points = Vec::<stamps::F64Point>::new();
+                let mut points = Vec::<art_stamps::F64Point>::new();
                 points.push((-transform.midx * 4.,-transform.midy * 4.));
                 points.push((transform.midx * 4.,-transform.midy * 4.));
                 points.push((transform.midx * 4., transform.midy * 4.));
@@ -719,8 +719,8 @@ impl SceneState {
                 points.push((-transform.midx * 4.,-transform.midy * 4.));
                let ret_location = (-transform.midx * 4.,-transform.midy * 4.);
                 for mask in self.mask_transforms.iter() {
-                    use stamps::ftransform;
-                    use stamps::itransform;
+                    use art_stamps::ftransform;
+                    use art_stamps::itransform;
                     points.push(itransform(&transform, ftransform(mask, (0.,0.))));
                     points.push(itransform(&transform, ftransform(mask, (mask.midx * 2.,0.))));
                     points.push(itransform(&transform, ftransform(mask, (mask.midx * 2.,mask.midy * 2.))));
@@ -731,7 +731,7 @@ impl SceneState {
                 let index = self.scene_graph.arrangement.get_mut().defs.clipPath.len();
                 let id = format!("{}", index);
                 clip_mask = "url(#".to_string() + &id + ")";
-                self.scene_graph.arrangement.get_mut().defs.clipPath.push(stamps::ClipPath{
+                self.scene_graph.arrangement.get_mut().defs.clipPath.push(art_stamps::ClipPath{
                     id:id,
                     polygon:Polygon{
                         points:points,
@@ -855,23 +855,23 @@ pub fn run(mut svg: SVG, save_file_name: &str, dir: &Path, width:u32, height:u32
         cursor_transform: CursorTransform {
             mouse_x:0,
             mouse_y:0,
-            transform: stamps::Transform::new(0,0),
+            transform: art_stamps::Transform::new(0,0),
         },
         mask_transforms: [
-            stamps::Transform::new(mask_surface.width(), mask_surface.height()),
-            stamps::Transform::new(mask_surface.width(), mask_surface.height()),
+            art_stamps::Transform::new(mask_surface.width(), mask_surface.height()),
+            art_stamps::Transform::new(mask_surface.width(), mask_surface.height()),
         ],
         duration_per_frame:START_DURATION_PER_FRAME,
         last_return_mouse: None,
         active_stamp: None,
         stamp_used: false,
-        camera_transform: stamps::Transform::new(0, 0),
+        camera_transform: art_stamps::Transform::new(0, 0),
         cursor:Cursor::from_surface(surface, 0, 0).map_err(
             |err| format!("failed to load cursor: {}", err))?,
         save_file_name: save_file_name.to_string(),
         window_width: canvas.viewport().width(),
         window_height: canvas.viewport().height(),
-        color:stamps::Color{r:0,g:0,b:0},
+        color:art_stamps::Color{r:0,g:0,b:0},
         locked:false,
     });
     scene_state.mask_transforms[0].tx = 10.0 - scene_state.mask_transforms[0].midx * 2.0;

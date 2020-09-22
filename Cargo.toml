@@ -1,17 +1,17 @@
 [package]
 
-name    = "stamps"
-description = "SDL2 bindings for Rust"
-repository = "https://github.com/Rust-SDL2/rust-sdl2"
-documentation = "https://rust-sdl2.github.io/rust-sdl2/sdl2/"
-version = "0.32.2"
+name    = "art-stamps"
+description = "Artwork stamps tool to quickly stamp out shaapes and make beautiful castles or houses as an SVG"
+repository = "https://github.com/danielrh/stamps"
+documentation = "https://github.com/danielrh/stamps"
+version = "0.0.1"
 license = "MIT"
-authors = [ "Tony Aldridge <tony@angry-lawyer.com>", "Cobrand <cobrandw@gmail.com>"]
+authors = [ "Daniel Reiter Horn <danielrh@users.sourceforge.net>"]
 keywords = ["SDL", "windowing", "graphics", "api", "engine"]
 categories = ["rendering","api-bindings","game-engines","multimedia"]
 
 [[bin]]
-name="stamps"
+name="art-stamps"
 
 [dependencies]
 "sdl2" = {version="0.34.3"}
