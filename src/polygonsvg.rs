@@ -101,7 +101,16 @@ struct Rect {
     #[serde(default)]
     pub fill: String,
 }
-
+impl Rect {
+    fn to_polygon(&self) -> [F64Point;4] {
+        [
+            (self.x,self.y),
+            (self.x+self.width,self.y),
+            (self.x+self.width,self.y+self.height),
+            (self.x,self.y+self.height),
+        ]
+    }
+}
 #[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
 struct Ellipse {
     pub cx: f64,
@@ -111,6 +120,7 @@ struct Ellipse {
     #[serde(default)]
     pub fill: String,
 }
+const POLYGON_RESOLUTION:usize = 16;
 impl From<Circle> for Ellipse {
     fn from(c :Circle) -> Ellipse {
         Ellipse{
@@ -122,7 +132,18 @@ impl From<Circle> for Ellipse {
         }
     }
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+impl Ellipse {
+    fn to_polygon(&self)  -> [F64Point;POLYGON_RESOLUTION] {
+        let mut ret = [F64Point::default();POLYGON_RESOLUTION];
+        for (index, item) in ret.iter_mut().enumerate() {
+            let angle = index as f64 * std::f64::consts::PI * 2./ POLYGON_RESOLUTION as f64;
+            *item = (self.cx + self.rx * angle.cos(), self.cy + self.ry * angle.sin());
+        }
+        ret
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq,Default,Clone)]
 struct Circle {
     pub cx: f64,
     pub cy: f64,
@@ -130,12 +151,25 @@ struct Circle {
     #[serde(default)]
     pub fill: String,
 }
+impl Circle {
+    fn to_polygon(&self)  -> [F64Point;POLYGON_RESOLUTION] {
+        return Ellipse::from(self.clone()).to_polygon()
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
 struct Polygon {
     #[serde(deserialize_with="point_deserializer")]
     pub points: Vec<F64Point>,
 }
+
+impl Polygon {
+    fn to_polygon(&self)  -> &[F64Point] {
+        return &self.points
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
 struct GTransform {
@@ -165,7 +199,9 @@ impl PolygonSVG {
         from_str(s)
     }
     pub fn to_polygon(&self) ->Vec<F64Point> {
-        Vec::new()
+        let mut ret = Vec::<F64Point>::new();
+        
+        ret
     }
 }
 pub fn to_polygon(s: &str) -> Result<Vec<F64Point>, serde_xml_rs::Error> {
