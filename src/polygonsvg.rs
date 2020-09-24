@@ -93,8 +93,60 @@ pub struct defs {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+struct Rect {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height:f64,
+    #[serde(default)]
+    pub fill: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+struct Ellipse {
+    pub cx: f64,
+    pub cy: f64,
+    pub rx: f64,
+    pub ry: f64,
+    #[serde(default)]
+    pub fill: String,
+}
+impl From<Circle> for Ellipse {
+    fn from(c :Circle) -> Ellipse {
+        Ellipse{
+            cx:c.cx,
+            cy:c.cy,
+            rx:c.r,
+            ry:c.r,
+            fill:c.fill,
+        }
+    }
+}
+#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+struct Circle {
+    pub cx: f64,
+    pub cy: f64,
+    pub r: f64,
+    #[serde(default)]
+    pub fill: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+struct Polygon {
+    #[serde(deserialize_with="point_deserializer")]
+    pub points: Vec<F64Point>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
 struct GTransform {
-    
+    #[serde(default)]
+    pub polygon: Vec<Polygon>,
+    #[serde(default)]
+    pub rect: Vec<Rect>,
+    #[serde(default)]
+    pub ellipse: Vec<Ellipse>,
+    #[serde(default)]
+    pub circle: Vec<Circle>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -179,6 +231,15 @@ fn gen_transform_deserializer(input:&str) -> Result<Transform, String> {
   Ok(ret)
 }
 
+pub fn point_deserializer<'de, D>(deserializer: D) -> Result<Vec<F64Point>, D::Error>
+where
+  D: Deserializer<'de>,
+{
+  let input = String::deserialize(deserializer)?;
+  unpack_polygon_points(input.as_str()).map_err(serde::de::Error::custom)
+}
+
+
 pub fn transform_deserializer<'de, D>(deserializer: D) -> Result<Transform, D::Error>
 where
   D: Deserializer<'de>,
@@ -186,10 +247,54 @@ where
   let input = String::deserialize(deserializer)?;
   gen_transform_deserializer(input.as_str()).map_err(serde::de::Error::custom)
 }
+fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
+    let mut ret = Vec::<F64Point>::new();
+    for pair in input.split(',') {
+        let mut pnt = [0.0;2];
+        let mut index = 0usize;
+        for coord in pair.split_whitespace() {
+            if coord.len() == 0 {
+                continue
+            }
+            pnt[std::cmp::min(1, index)] = coord.parse().map_err(|e| format!("{:?}", e))?;
+            index += 1;
+        }
+        if index != 2 {
+            return Err(format!("Too many dims when making polygon: {}", index));
+        }
+        ret.push((pnt[0], pnt[1]));
+    }
+    Ok(ret)
+}
+
 mod test {
   #[test]
   fn test_regex() {
     let tform: regex::Regex = regex::Regex::new(super::TFORM_REGEX_STR).unwrap();
     tform.captures("translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)").unwrap();
+  }
+  #[test]
+  fn test_parse_polygon_points() {
+      let st = "1 2,3 4, 5 6,7 8";
+      let parsed = super::unpack_polygon_points(st).unwrap();
+      assert_eq!(&parsed,
+                 &[(1., 2.),
+                   (3., 4.),
+                   (5., 6.),
+                   (7., 8.),
+                 ]);
+  }
+  #[test]
+  fn test_parse_bad_polygon_points() {
+      let st = "1 2 3,3 4, 5 6,7 8";
+      let parsed = super::unpack_polygon_points(st);
+      if let Ok(_) = parsed {
+          panic!("Need to have an error here")
+      }
+      let st2 = "1 2a,3 4, 5 6,7 8";
+      let parsed2 = super::unpack_polygon_points(st2);
+      if let Ok(_) = parsed2 {
+          panic!("Need to have an error here")
+      }      
   }
 }

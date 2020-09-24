@@ -107,7 +107,7 @@ impl serde::Serialize  for Color {
     }
 }
 
-pub use super::polygonsvg::{ftransform,itransform, F64Point, Transform, transform_deserializer};
+pub use super::polygonsvg::{ftransform,itransform, F64Point, Transform, transform_deserializer, point_deserializer};
 
 fn poly_helper(a: &[F64Point], b:&[F64Point]) -> bool {
     for (i1, p0) in a.iter().enumerate() {
@@ -232,25 +232,6 @@ impl Image {
 }
 
 
-fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
-    let mut ret = Vec::<F64Point>::new();
-    for pair in input.split(',') {
-        let mut pnt = [0.0;2];
-        let mut index = 0usize;
-        for coord in pair.split_whitespace() {
-            if coord.len() == 0 {
-                continue
-            }
-            pnt[std::cmp::min(1, index)] = coord.parse().map_err(|e| format!("{:?}", e))?;
-            index += 1;
-        }
-        if index != 2 {
-            return Err(format!("Too many dims when making polygon: {}", index));
-        }
-        ret.push((pnt[0], pnt[1]));
-    }
-    Ok(ret)
-}
 
 fn pack_polygon_points(input: &[F64Point]) -> String {
     input.iter().map(|val|format!("{} {}", val.0, val.1)).collect::<Vec<String>>().join(",")
@@ -297,14 +278,6 @@ impl g {
             self.rect.to_string()?,
         ))
     }
-}
-
-fn point_deserializer<'de, D>(deserializer: D) -> Result<Vec<F64Point>, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let input = String::deserialize(deserializer)?;
-  unpack_polygon_points(input.as_str()).map_err(serde::de::Error::custom)
 }
 
 
@@ -703,30 +676,6 @@ mod test {
         assert_eq!("H\u{0026bE}EL&quot;LOTE&apos;",
                    attr_escape(&"H\u{0026bE}EL\"LOTE'".to_string(), &mut scratch));
     }
-  #[test]
-  fn test_parse_polygon_points() {
-      let st = "1 2,3 4, 5 6,7 8";
-      let parsed = super::unpack_polygon_points(st).unwrap();
-      assert_eq!(&parsed,
-                 &[(1., 2.),
-                   (3., 4.),
-                   (5., 6.),
-                   (7., 8.),
-                 ]);
-  }
-  #[test]
-  fn test_parse_bad_polygon_points() {
-      let st = "1 2 3,3 4, 5 6,7 8";
-      let parsed = super::unpack_polygon_points(st);
-      if let Ok(_) = parsed {
-          panic!("Need to have an error here")
-      }
-      let st2 = "1 2a,3 4, 5 6,7 8";
-      let parsed2 = super::unpack_polygon_points(st2);
-      if let Ok(_) = parsed2 {
-          panic!("Need to have an error here")
-      }      
-  }
   #[test]
   fn test_pack_polygon_points() {
       let rendered = super::pack_polygon_points(&[(1., 2.),
