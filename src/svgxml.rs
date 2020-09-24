@@ -329,6 +329,7 @@ pub struct defs {
     #[serde(default)]
     pub mask: Vec<Mask>,
 }
+
 fn read_to_string(filename: &Path) ->  Result<String, serde_xml_rs::Error> {
     let mut f = std::fs::File::open(filename)?;
     let mut buffer = String::new();

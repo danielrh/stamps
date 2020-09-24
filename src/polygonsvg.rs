@@ -297,4 +297,61 @@ mod test {
           panic!("Need to have an error here")
       }      
   }
+  fn read_to_string(filename: &Path) ->  Result<String, serde_xml_rs::Error> {
+    let mut f = std::fs::File::open(filename)?;
+    let mut buffer = String::new();
+    match f.read_to_string(&mut buffer) {
+        Ok(_) => Ok(buffer),
+        Err(e) => Err(serde::de::Error::custom(e)),
+    }
+  }
+use std::path::Path;
+    use std::io::Read;
+  #[test]
+  fn test_parse_assets() {
+      use super::serde_xml_rs::from_str;
+      let assets = vec!["assets/doric.svg",
+                        "assets/thinrect.svg",
+                        "assets/castle.svg",
+                        "assets/ramp.svg",
+                        "assets/car.svg",
+                        "assets/rect.svg",
+                        "assets/hdoublepane.svg",
+                        "assets/hwindow.svg",
+                        "assets/harch.svg",
+                        "assets/doublepane.svg",
+                        "assets/quartpipe.svg",
+                        "assets/medramp.svg",
+                        "assets/square.svg",
+                        "assets/larch.svg",
+                        "assets/medsquare.svg",
+                        "assets/lhalframp.svg",
+                        "assets/hporthole.svg",
+                        "assets/halfpipe.svg",
+                        "assets/pipe.svg",
+                        "assets/windows.svg",
+                        "assets/smallsquare.svg",
+                        "assets/medcircle.svg",
+                        "assets/circle.svg",
+                        "assets/arch.svg",
+                        "assets/rarch.svg",
+                        "assets/house.svg",
+                        "assets/n.svg",
+                        "assets/eichler.svg",
+                        "assets/lquartramp.svg",
+                        "assets/smallcircle.svg",
+                        "assets/gothic.svg",
+                        "assets/column.svg",
+                        "assets/rquartramp.svg",
+                        "assets/roof.svg",
+                        "assets/rhalframp.svg",
+                        "assets/halfthinrect.svg",
+                        "assets/porthole.svg",
+      ];
+      for asset in assets {
+          eprintln!("Testing Asset {}\n", asset);
+          let ramp:super::PolygonSVG = from_str(&read_to_string(Path::new(&asset)).unwrap()).unwrap();
+          assert_eq!(ramp.to_polygon().len(), 0);
+      }
+  }
 }
