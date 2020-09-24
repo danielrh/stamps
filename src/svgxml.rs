@@ -1,5 +1,7 @@
 #[allow(unused_imports)]
 use std::path::Path;
+use std::collections::HashMap;
+use std::vec::Vec;
 use super::serde_xml_rs::from_str;
 use super::serde_xml_rs;
 use std::io::Read;
@@ -105,27 +107,7 @@ impl serde::Serialize  for Color {
     }
 }
 
-pub fn ftransform(t:&Transform, p: F64Point) -> F64Point {
-    let centered = (p.0 - t.midx, p.1 - t.midy);
-    let rotate_rad = -t.rotate * std::f64::consts::PI/180.;
-    let rotated = (centered.0 * rotate_rad.cos() + centered.1 * rotate_rad.sin(),
-                   -centered.0 * rotate_rad.sin() + centered.1 * rotate_rad.cos());
-    let scaled = (rotated.0 * t.scale, rotated.1 * t.scale);
-    let recentered = (scaled.0 + t.midx, scaled.1 + t.midy);
-    (recentered.0 + t.tx, recentered.1 + t.ty)
-}
-
-pub fn itransform(t:&Transform, p: F64Point) -> F64Point {
-    let untranslated = (p.0 - t.tx, p.1 - t.ty);
-    let recentered = (untranslated.0 - t.midx, untranslated.1 - t.midy);
-    let unscaled = (recentered.0/t.scale, recentered.1/t.scale);
-    let rotate_rad = t.rotate * std::f64::consts::PI/180.;
-    let rotated = (unscaled.0 * rotate_rad.cos() + unscaled.1 * rotate_rad.sin(),
-                   -unscaled.0 * rotate_rad.sin() + unscaled.1 * rotate_rad.cos());
-    let centered = (rotated.0 + t.midx, rotated.1 + t.midy);
-    centered
-}
-
+pub use super::polygonsvg::{ftransform,itransform, F64Point, Transform, transform_deserializer};
 
 fn poly_helper(a: &[F64Point], b:&[F64Point]) -> bool {
     for (i1, p0) in a.iter().enumerate() {
@@ -248,65 +230,7 @@ impl Image {
         }
     }
 }
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct Transform {
-    pub midx: f64,
-    pub midy: f64,
-    pub rotate: f64,
-    pub tx: f64,
-    pub ty: f64,
-    pub scale: f64,
-}
-impl Transform {
-  pub fn new(width: u32, height: u32) -> Transform {
-      Transform{
-          scale:1.0,
-          midx:width as f64/2.0,
-          midy:height as f64/2.0,
-          rotate:0.0,
-          tx:0.0,
-          ty:0.0,
-      }
-  }
-  pub fn to_bbox(&self) -> [(f64,f64);4] {
-      [ftransform(self, (0.,0.)),
-       ftransform(self, (0., self.midy * 2.)),
-       ftransform(self, (self.midx * 2., self.midy * 2.)),
-       ftransform(self, (self.midx * 2., 0.)),
-       ]
-  }
-  fn to_string(&self) -> Result<String, serde_xml_rs::Error> {
-    let mut components = [String::new(),String::new(),String::new(),String::new(),String::new()];
-    let mut num_components = 0usize;
-    if self.scale != 1.0 {
-      components[num_components] = format!("scale({})", self.scale);
-      num_components += 1;
-    }
-    if self.tx != 0.0 || self.ty != 0.0 {
-      components[num_components] = format!("translate({}, {})", self.tx, self.ty);
-      num_components += 1;      
-    }
-    if self.midx != 0.0 || self.midy != 0.0 {
-      components[num_components] = format!("translate({}, {})", self.midy, self.midy);
-      num_components += 1;      
-    }
-    if self.rotate != 0.0 {
-      components[num_components] = format!("rotate({})", self.rotate);
-      num_components += 1;
-    }
-    if self.midx != 0.0 || self.midy != 0.0 {
-      components[num_components] = format!("translate({}, {})", -self.midx, -self.midy);
-      num_components += 1;      
-    }
-    return Ok(components[..num_components].join(" "))
-  }
-}
 
-fn f64_err(e: std::num::ParseFloatError) -> String {
-  format!("{}", e).to_string()
-}
-
-pub type F64Point = (f64, f64);
 
 fn unpack_polygon_points(input:&str) -> Result<Vec<F64Point>, String> {
     let mut ret = Vec::<F64Point>::new();
@@ -345,69 +269,6 @@ fn parse_url_from_mask<'a>(mask:&'a str) -> Result<&'a str, String> {
         }
     }
     Err("Unable to extract relative image url from match".to_string() + mask)
-}
-const TFORM_REGEX_STR: &'static str = r"^\s*(?:scale\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?\s*(?:translate\(\s*([^,]+),\s*([^\)]+)\)\s*)?(?:rotate\(\s*([^\)]+)\)\s*)?(?:translate\(\s*([^,]+),\s*([^\)]+)\s*\)?)\s*$";
-fn gen_transform_deserializer(input:&str) -> Result<Transform, String> {
-  let tform = Regex::new(TFORM_REGEX_STR).unwrap(); // don't use lazy static dependency
-  // only happens during IO, so the simplicity is worth it
-  let matches_opt = tform.captures(input);
-  if matches_opt.is_none() {
-    return Err("No matches for ".to_string() + input)
-  }
-  let matches = matches_opt.unwrap();
-  let mut ret = Transform{scale:1.0,rotate:0.0,tx:0.0,ty:0.0,midx:0.0,midy:0.0};
-  if let Some(scale) = matches.get(1) {
-    ret.scale = scale.as_str().parse::<f64>().map_err(f64_err)?;
-  }
-  if let Some(tx) = matches.get(2) {
-    if let Some(ty) = matches.get(3) {
-      ret.tx = tx.as_str().parse::<f64>().map_err(f64_err)?;
-      ret.ty = ty.as_str().parse::<f64>().map_err(f64_err)?;
-    }
-  }
-  if let Some(midx) = matches.get(4) {
-    if let Some(midy) = matches.get(5) {
-      ret.midx = midx.as_str().parse::<f64>().map_err(f64_err)?;
-      ret.midy = midy.as_str().parse::<f64>().map_err(f64_err)?;
-    }
-  }
-  let ix;
-  let iy;
-  if let Some(rmidx) = matches.get(7) {
-    if let Some(rmidy) = matches.get(8) {
-      ix = rmidx.as_str().parse::<f64>().map_err(f64_err)?;
-      iy = rmidy.as_str().parse::<f64>().map_err(f64_err)?;
-    } else {
-      ix = 0.0;
-      iy = 0.0;
-    }
-  } else {
-    ix = 0.0;
-    iy = 0.0;
-  }
-  if ret.midx != -ix || ret.midy != -iy {
-    if ret.midx == 0.0 && ret.midy == 0.0 && ret.tx == -ix && ret.ty == -iy {
-      ret.midx = ret.tx;
-      ret.midy = ret.ty;
-      ret.tx = 0.0;
-      ret.ty = 0.0;
-    } else {
-      return Err(format!("translate({},{}) != -translate({},{}) = translate({}, {})",
-                         ret.midx, ret.midy, ix, iy, -ix, -iy))
-    }
-  }
-  if let Some(rotate) = matches.get(6) {
-    ret.rotate = rotate.as_str().parse::<f64>().map_err(f64_err)?;
-  }
-  Ok(ret)
-}
-
-fn transform_deserializer<'de, D>(deserializer: D) -> Result<Transform, D::Error>
-where
-  D: Deserializer<'de>,
-{
-  let input = String::deserialize(deserializer)?;
-  gen_transform_deserializer(input.as_str()).map_err(serde::de::Error::custom)
 }
 
 fn image_deserializer<'de, D>(deserializer: D) -> Result<Image, D::Error>
@@ -556,6 +417,38 @@ impl SVG {
         self.width = width;
         self.height = height;
     }
+    pub fn load_polygon(&self, bmp_name: &str) -> Result<Vec<F64Point>, serde_xml_rs::Error> {
+        eprintln!("LOADING FROM {:?}\n", Path::new(&bmp_name.to_string().replace("/stamps/","/").replace(".bmp", ".svg")));
+        let asset_data = match read_to_string(&Path::new(&bmp_name.to_string().replace("/stamps/","/").replace(".bmp", ".svg"))) {
+            Ok(s) => s,
+            Err(e) => return Err(serde::de::Error::custom(e)),
+        };
+        super::polygonsvg::to_polygon(&asset_data)
+    }
+    //
+    pub fn intersect(&self, left: F64Point, right:F64Point, cache: &mut HashMap<String,Vec<F64Point>>) -> Result<Option<F64Point>, serde_xml_rs::Error> {
+        for stamp in &self.stamps {
+            let cur_poly:Vec<F64Point>;
+            let poly = match &cache.get(&stamp.rect.href.url) {
+                None => {
+                    cur_poly = self.load_polygon(&stamp.rect.href.url)?;
+                    cache.insert(stamp.rect.href.url.clone(), cur_poly.clone());
+                    &cur_poly
+                },
+                &Some(poly) => poly,
+            };
+            if poly.len() == 0 {
+                continue
+            }
+            let mut last = ftransform(&stamp.transform, poly[poly.len()-1]);
+            for &cur_untransformed in poly {
+                let cur = ftransform(&stamp.transform, cur_untransformed);
+                // do intersect
+                last = cur;
+            }
+        }
+        Ok(None)
+    }
     pub fn add(&mut self, transform: Transform, img: String, clip_mask: String, color: Color) {
         let width = (transform.midx * 2.0) as u32;
         let height = (transform.midy * 2.0) as u32;
@@ -599,10 +492,8 @@ impl SVG {
 
 mod test {
     use super::{F64Point,Color, SourceStamp, Mask};
-    #[test]
-    fn test_basic_serde() {
-        use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
-        let s = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+    #[cfg(test)]
+    static LARCH_RARCH:&'static str = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
 <g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
 <rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#assets/stamps/larch.bmp)"/>
 </g>
@@ -640,6 +531,9 @@ mod test {
 </mask>
 </defs>
 </svg>"##;
+    #[test]
+    fn test_basic_serde() {
+        use super::{SVG, HrefAndClipMask, Image, Transform, g, defs};
         let svg_struct = SVG {
             width:500,
             height:500,
@@ -678,11 +572,11 @@ mod test {
             },
         };
         use super::serde_xml_rs::from_str;
-        let svg_deserialized: SVG = from_str(s).unwrap();
+        let svg_deserialized: SVG = from_str(LARCH_RARCH).unwrap();
         assert_eq!(svg_deserialized, svg_struct);
         let svg_serialized = svg_struct.to_string().unwrap();
         eprintln!("{}",svg_serialized);
-        assert_eq!(svg_serialized, s);
+        assert_eq!(svg_serialized, LARCH_RARCH);
     }
     #[test]
     fn test_clip_mask_serde() {
@@ -843,11 +737,6 @@ mod test {
       let st = "1 2,3 4,5 6,7 8";
       assert_eq!(rendered, st.to_string())
   }
-  #[test]
-  fn test_regex() {
-    let tform: regex::Regex = regex::Regex::new(super::TFORM_REGEX_STR).unwrap();
-    tform.captures("translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)").unwrap();
-  }
     fn _approx_eq(l: F64Point, r: F64Point) -> bool {
         let diff0 = if l.0 > r.0 {
             l.0 - r.0 
@@ -866,6 +755,16 @@ mod test {
           if _approx_eq($left, $right) == false {assert_eq!($left, $right)} else {()}
       );
   }
+    #[test]
+    fn test_intersect() {
+        use super::serde_xml_rs::from_str;
+        use super::SVG;
+        let svg_deserialized: SVG = from_str(LARCH_RARCH).unwrap();
+        use std::collections::HashMap;
+        let mut cache = HashMap::new();
+        let intersection = svg_deserialized.intersect((3.,4.),(100.,4.), &mut cache).unwrap();
+        
+    }
   #[test]
     fn test_transform() {
         use super::ftransform;
