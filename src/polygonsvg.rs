@@ -21,6 +21,11 @@ pub struct Transform {
     pub ty: f64,
     pub scale: f64,
 }
+impl Default for Transform {
+    fn default() -> Self {
+        Self::new(64,64)
+    }
+}
 impl Transform {
   pub fn new(width: u32, height: u32) -> Transform {
       Transform{
@@ -69,9 +74,14 @@ impl Transform {
 
 pub fn ftransform(t:&Transform, p: F64Point) -> F64Point {
     let centered = (p.0 - t.midx, p.1 - t.midy);
-    let rotate_rad = -t.rotate * std::f64::consts::PI/180.;
-    let rotated = (centered.0 * rotate_rad.cos() + centered.1 * rotate_rad.sin(),
-                   -centered.0 * rotate_rad.sin() + centered.1 * rotate_rad.cos());
+    let rotated;
+    if t.rotate != 0.0 {
+        let rotate_rad = -t.rotate * std::f64::consts::PI/180.;
+        rotated = (centered.0 * rotate_rad.cos() + centered.1 * rotate_rad.sin(),
+                       -centered.0 * rotate_rad.sin() + centered.1 * rotate_rad.cos());
+    } else {
+        rotated = centered;
+    }
     let scaled = (rotated.0 * t.scale, rotated.1 * t.scale);
     let recentered = (scaled.0 + t.midx, scaled.1 + t.midy);
     (recentered.0 + t.tx, recentered.1 + t.ty)
@@ -171,8 +181,10 @@ impl Polygon {
 }
 
 
-#[derive(Debug, Serialize, Deserialize, PartialEq,Default)]
+#[derive(Debug, Serialize, Default, Deserialize, PartialEq)]
 struct GTransform {
+    #[serde(deserialize_with="transform_deserializer")]
+    pub transform: Transform,
     #[serde(default)]
     pub polygon: Vec<Polygon>,
     #[serde(default)]
@@ -182,7 +194,27 @@ struct GTransform {
     #[serde(default)]
     pub circle: Vec<Circle>,
 }
-
+impl GTransform {
+    pub fn to_polygon(&self) ->Vec<F64Point> {
+        let mut ret = Vec::<F64Point>::new();
+        for poly in &self.polygon {
+            poly_join(&mut ret, poly.to_polygon());
+        }
+        for rect in &self.rect {
+            poly_join(&mut ret, &rect.to_polygon()[..]);
+        }
+        for el in &self.ellipse {
+            poly_join(&mut ret, &el.to_polygon()[..]);
+        }
+        for cir in &self.circle {
+            poly_join(&mut ret, &cir.to_polygon()[..]);
+        }
+        for vertex in &mut ret {
+            *vertex = ftransform(&self.transform, *vertex);
+        }
+        ret
+    }
+}
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct PolygonSVG {
     #[serde(default)]
@@ -191,7 +223,15 @@ struct PolygonSVG {
     #[serde(rename="g")]
     pub section: GTransform,
 }
-
+fn poly_join(ret: &mut Vec<F64Point>, new_polygon:&[F64Point]){
+    if ret.len() == 0 {
+        ret.extend_from_slice(new_polygon);
+    } else {
+        let last = ret[ret.len() - 1];
+        ret.extend_from_slice(new_polygon);
+        ret.push(last);
+    }
+}
 
 impl PolygonSVG {
     pub fn from_str(s: &str) -> Result<Self,serde_xml_rs::Error> {
@@ -199,8 +239,7 @@ impl PolygonSVG {
         from_str(s)
     }
     pub fn to_polygon(&self) ->Vec<F64Point> {
-        let mut ret = Vec::<F64Point>::new();
-        
+        let mut ret = self.section.to_polygon();
         ret
     }
 }
@@ -384,10 +423,50 @@ use std::path::Path;
                         "assets/halfthinrect.svg",
                         "assets/porthole.svg",
       ];
-      for asset in assets {
+      let sizes = [
+          21 as usize,
+          4,
+          18,
+          3,
+          42,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          3,
+          4,
+          4,
+          4,
+          3,
+          4,
+          4,
+          4,
+          14,
+          4,
+          16,
+          16,
+          4,
+          4,
+          5,
+          8,
+          4,
+          3,
+          16,
+          9,
+          11,
+          3,
+          3,
+          3,
+          4,
+          4,
+      ];
+      assert_eq!(sizes.len(), assets.len());
+      for (asset, size) in assets.iter().zip(&sizes[..]) {
           eprintln!("Testing Asset {}\n", asset);
           let ramp:super::PolygonSVG = from_str(&read_to_string(Path::new(&asset)).unwrap()).unwrap();
-          assert_eq!(ramp.to_polygon().len(), 0);
+          assert_eq!(ramp.to_polygon().len(), *size);
       }
   }
 }
