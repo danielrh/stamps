@@ -393,6 +393,7 @@ pub fn ray_vs_polygon(
     let mut ret: Option<f64> = None;
     for point in poly {
         let cur_point = ftransform(poly_transform, *point);
+        eprintln!("CHecking {:?} - {:?}", last, cur_point);
         if let Some(t) = ray_vs_segment(origin, dir, last, cur_point) {
             if let Some(t_old) = ret {
                 ret = Some(t.min(t_old));
@@ -448,14 +449,14 @@ pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transfo
         }
     }
     if a_inside == false && b_inside == false && a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t <= 1.0 {
-        eprintln!("not both middle {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t);
+        eprintln!("not both middle {:?} is {:?} < {:?} == {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t, a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t, b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t,a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t <= b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t);
         // segment spans a corner but is not inside
         if a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t < b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t {
-            return Some(PolyIntersection{outward:sub2d(add2d(a, scale2d(sub2d(b, a), a_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false}).t)), b)});
+            return Some(PolyIntersection{
+                outward:sub2d(add2d(b, scale2d(sub2d(a, b), b_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false}).t)), a),
+            });
         }
-        return Some(PolyIntersection{
-            outward:sub2d(add2d(b, scale2d(sub2d(a, b), b_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false}).t)), a),
-        });
+        return Some(PolyIntersection{outward:sub2d(add2d(a, scale2d(sub2d(b, a), a_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false}).t)), b)});
     }
     if a_inside {
         return Some(PolyIntersection{
@@ -502,14 +503,14 @@ mod test {
                  Some(PolyIntersection{outward:(0.,1.5)}));
 
       assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(8.,0.)}));
+                 Some(PolyIntersection{outward:(-8.,0.)}));
       assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(6.,0.)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-6.5,0.)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(0.,6.)}));
+                 Some(PolyIntersection{outward:(0.,-5.)}));
 
 
       let shift_right = &Transform{midx:32.,midy:32.,rotate:0.,tx:1.,ty:1.,scale:1.};
@@ -521,14 +522,14 @@ mod test {
                  Some(PolyIntersection{outward:(0.,2.5)}));
 
       assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(9.,0.)}));
+                 Some(PolyIntersection{outward:(-7.,0.)}));
       assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(7.,0.)}));
+                 Some(PolyIntersection{outward:(-7.,0.)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-5.5,0.)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(0.,7.)}));
+                 Some(PolyIntersection{outward:(0.,-4.)}));
 
       let shift_scale = &Transform{midx:0.5,midy:0.5,rotate:0.,tx:1.,ty:1.,scale:2.};
       

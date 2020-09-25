@@ -414,11 +414,8 @@ impl SVG {
             if poly.len() == 0 {
                 continue
             }
-            let mut last = ftransform(&stamp.transform, poly[poly.len()-1]);
-            for &cur_untransformed in poly {
-                let cur = ftransform(&stamp.transform, cur_untransformed);
-                // do intersect
-                last = cur;
+            if let Some(bounce) = super::polygonsvg::segment_inside_polygon(left, right, &stamp.transform, poly, (0.,-1.)) {
+                return Ok(Some(bounce.outward));
             }
         }
         Ok(None)
@@ -709,11 +706,62 @@ mod test {
     fn test_intersect() {
         use super::serde_xml_rs::from_str;
         use super::SVG;
-        let svg_deserialized: SVG = from_str(LARCH_RARCH).unwrap();
+        static LHALFRAMP_RHALFRAMP:&'static str = r##"<svg version="2.0" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+<g transform="scale(2) translate(64, 64) rotate(8) translate(-64, -64)">
+<rect x="0" y="0" width="128" height="128" fill="#000000" mask="url(#assets/stamps/lhalframp.bmp)"/>
+</g>
+<g transform="translate(290, 80) translate(64, 64) rotate(220) translate(-64, -64)">
+<rect x="0" y="0" width="128" height="128" fill="#ff1008" mask="url(#assets/stamps/rhalframp.bmp)"/>
+</g>
+<defs>
+<mask id="assets/stamps/lhalframp.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="lhalframp">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="96" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#lhalframp)"/>
+  </g>
+</svg>
+</mask>
+<mask id="assets/stamps/rhalframp.bmp"><svg version="2.0" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="rhalframp">
+      <g>
+      <rect x="0" y="0" width="64" height="64" fill="white"/>
+      <ellipse cx="-32" cy="66" rx="74" ry="85" fill="black"/>
+      </g>
+    </mask>
+  </defs>
+  <g transform="translate(0, 0)">
+    <polygon fill="white" stroke="white" points="17 1,47 1,47 63,17 63" mask="url(#rhalframp)"/>
+  </g>
+</svg>
+</mask>
+</defs>
+</svg>"##;
+        let svg_deserialized: SVG = from_str(LHALFRAMP_RHALFRAMP).unwrap();
         use std::collections::HashMap;
+        use super::Transform;
         let mut cache = HashMap::new();
-        let intersection = svg_deserialized.intersect((3.,4.),(100.,4.), &mut cache).unwrap();
-        
+        let intersection = svg_deserialized.intersect((37.09,4.),(100.,4.), &mut cache).unwrap();
+        let hit = intersection.unwrap();
+        assert_eq!((hit.0.floor(), hit.1.floor()), (1.0,0.0));
+        let intersection1 = svg_deserialized.intersect((38.,4.),(38.05,4.), &mut cache).unwrap();
+        let hit1 = intersection1.unwrap();
+        assert_eq!((hit1.0.floor(), hit1.1.floor()), (0.0,-55.0));
+        let intersection2 = svg_deserialized.intersect((38.1,4.),(100.,4.), &mut cache).unwrap();
+        assert_eq!(intersection2, None);
+        let intersection3 = svg_deserialized.intersect((-400.1,4.),(100.,4.), &mut cache).unwrap();
+        let hit3 = intersection3.unwrap();
+        assert_eq!((hit3.0.floor(), hit3.1.floor()), (-99.0,0.0));
+        let intersection4 = svg_deserialized.intersect((368.,183.),(369.,183.), &mut cache).unwrap();
+        let hit4 = intersection4.unwrap();
+        assert_eq!((hit4.0.floor(), hit4.1.floor()), (0.0,-26.0));
     }
   #[test]
     fn test_transform() {
