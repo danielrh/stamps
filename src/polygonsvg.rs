@@ -449,10 +449,13 @@ pub fn ray_vs_polygon_helper(
         //eprintln!("CHecking {:?} - {:?}", last, cur_point);
         if let Some(t) = ray_vs_segment(origin, dir, last, cur_point) {
             if let Some(t_old) = ret {
-                ret = Some(t.min(t_old));
-                segment = (last,cur_point);
+                if t_old > t {
+                    ret = Some(t);
+                    segment = (last,cur_point);
+                }
             } else {
-                ret = Some(t)
+                ret = Some(t);
+                segment = (last,cur_point);
             }
             hit_count += 1;
             //eprintln!("Ray {:?} -> {:?} hit {:?}->{:?} at {:?} hc={}", origin, dir, last, cur_point, ret, hit_count);
@@ -505,7 +508,7 @@ pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transfo
         }
     }
     if a_inside == false && b_inside == false && a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false, segment:default_segment})).t <= 1.0 {
-        //eprintln!("not both middle {:?} is {:?} < {:?} == {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t, a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t, b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t,a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t <= b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t);
+        //eprintln!("not both middle {:?} is {:?} < {:?} == {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false, segment:default_segment})).t, a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false,segment:default_segment}).t, b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false,segment:default_segment}).t,a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false,segment:default_segment}).t <= b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false, segment:default_segment}).t);
         // segment spans a corner but is not inside
         let first = a_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false, segment:default_segment}).t;
         let second = b_p_intersection.unwrap_or(RayParamAndHitCount{t:1.0,inside:false, segment:default_segment}).t;
@@ -523,18 +526,22 @@ pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transfo
         segment = a_p_intersection.unwrap().segment;
         inside_vertex = b;
     } else {
+        //eprintln!("Returning non eearly");
         return None;
     }
+    //eprintln!("SEGMENT {:?} inside_vertex {:?}", segment, inside_vertex);
     let mut perp_dir = ((segment.1).1-(segment.0).1,(segment.0).0 - (segment.1).0);
     let segment_to_end = sub2d(perp_dir, segment.0);
     let inside_vertex_to_end = sub2d(inside_vertex, segment.0);
-    if dot2d(inside_vertex_to_end, segment_to_end) > 0. {
+    if dot2d(inside_vertex_to_end, perp_dir) > 0. {
         perp_dir = (-perp_dir.0, -perp_dir.1)
     }
+    //eprintln!("SEGMENT_TO_END {:?} PER_PDIR {:?} inside_vertex_to_end {:?} trying to impinge on {:?}", segment_to_end, perp_dir, inside_vertex_to_end, segment);
     if let Some(dir_mag) = ray_vs_segment(inside_vertex, perp_dir, segment.0, segment.1) {
+        //eprintln!("SEGMENT_TO_END {:?} PER_PDIR {:?} inside_vertex_to_end {:?} trying to impinge on {:?} SUCCESS {:?} results in {:?}", segment_to_end, perp_dir, inside_vertex_to_end, segment, dir_mag, scale2d(perp_dir, dir_mag));
         Some(PolyIntersection{outward:scale2d(perp_dir, dir_mag)})
     } else {
-        None
+        Some(PolyIntersection{outward:scale2d(perp_dir, 1./dot2d(perp_dir,perp_dir).sqrt())})
     }
 }
 
