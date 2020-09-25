@@ -392,10 +392,13 @@ impl SVG {
         self.height = height;
     }
     pub fn load_polygon(&self, bmp_name: &str) -> Result<Vec<F64Point>, serde_xml_rs::Error> {
-        eprintln!("LOADING FROM {:?}\n", Path::new(&bmp_name.to_string().replace("/stamps/","/").replace(".bmp", ".svg")));
+        
         let asset_data = match read_to_string(&Path::new(&bmp_name.to_string().replace("/stamps/","/").replace(".bmp", ".svg"))) {
             Ok(s) => s,
-            Err(e) => return Err(serde::de::Error::custom(e)),
+            Err(e) => {
+                eprintln!("FAILED LOADING {:?}\n", Path::new(&bmp_name.to_string().replace("/stamps/","/").replace(".bmp", ".svg")));
+                return Err(serde::de::Error::custom(e));
+            },
         };
         super::polygonsvg::to_polygon(&asset_data, )
     }
@@ -415,6 +418,8 @@ impl SVG {
                 continue
             }
             if let Some(bounce) = super::polygonsvg::segment_inside_polygon(left, right, &stamp.transform, poly, (0.,-1.)) {
+                //eprintln!("FOUND BOUNCE {:?} {:?} {:?} {:?}",
+                //          left, right, stamp.transform, poly);
                 return Ok(Some(bounce.outward));
             }
         }
@@ -750,7 +755,7 @@ mod test {
         let mut cache = HashMap::new();
         let intersection = svg_deserialized.intersect((37.09,4.),(100.,4.), &mut cache).unwrap();
         let hit = intersection.unwrap();
-        assert_eq!((hit.0.floor(), hit.1.floor()), (1.0,0.0));
+        assert_eq!((hit.0.floor(), hit.1.floor()), (0.0,-54.0));
         let intersection1 = svg_deserialized.intersect((38.,4.),(38.05,4.), &mut cache).unwrap();
         let hit1 = intersection1.unwrap();
         assert_eq!((hit1.0.floor(), hit1.1.floor()), (0.0,-55.0));

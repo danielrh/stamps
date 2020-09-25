@@ -362,11 +362,41 @@ pub fn ray_vs_segment(origin: F64Point, dir: F64Point, a: F64Point, b: F64Point)
     let lenv2crossv1 = v2.0 * v1.1 - v2.1 * v1.0;
     let dotv2v3 = dot2d(v2, v3);
     if !(dotv2v3 >= 1.0e-10 || dotv2v3 <= -1.0e-10) {
+        if dir.0 == 0.0 {
+            // vertical
+            if a.0 == origin.0 {
+                let mut ta = (a.1 - origin.1) / dir.1;
+                let mut tb = (b.1 - origin.1) / dir.1;
+                if ta >= 0.0 && tb >= 0.0 {
+                    return Some(ta.min(tb));
+                }
+                if (ta >= 0.0) != (tb >= 0.0) {
+                    return Some(0.0); // in the middle of the line
+                }
+                return None;
+            }
+            let ta = (a.0 - origin.0) / dir.0;
+            let tb = (b.0 - origin.0) / dir.0;
+            if origin.1 + dir.1 * ta != a.1 {
+                return None;
+            }
+            if ta >= 0.0 && tb >= 0.0 {
+                return Some(ta.min(tb));
+            }
+            if (ta >= 0.0) != (tb >= 0.0) {
+                return Some(0.0); // in the middle of the line
+            }
+            return None;            
+        }
+        //eprintln!("COLLINEAR: unimpl");
         return None; // collinear -- assume not exactly the same, for our purposes
     }
     let t1 = lenv2crossv1 / dotv2v3;
     let t2 = dot2d(v1, v3) / dotv2v3;
-    if t2 <= 1.0 && t2 >= 0.0 && t1 >= 0.0 {
+    //eprintln!("INPUT o:{:?} dir {:?} a {:?} b {:?}", origin, dir, a, b);
+    
+    //eprintln!("CHECKING v1 {:?},v2 {:?},v3 {:?} ======= t1 {}, t2 {}", v1, v2, v3, t1, t2);
+    if t2 < 1.0 && t2 >= 0.0 && t1 >= 0.0 {
         return Some(t1)
     }
     return None
@@ -376,13 +406,34 @@ pub struct PolyIntersection {
     pub outward :F64Point,
 }
 
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub struct RayParamAndHitCount {
     t: f64,
     inside: bool,
 }
-
 pub fn ray_vs_polygon(
+    origin: F64Point, dir: F64Point, poly_transform: &Transform, poly: &[F64Point],
+) -> Option<RayParamAndHitCount> {
+    if let Some(mut ret) = ray_vs_polygon_helper(origin,dir,poly_transform, poly) {
+        if ret.inside {
+            //eprintln!("GOT CHecking {:?} dir: {:?} to {:?} == {:?}", (origin.0, origin.1), dir, poly, ret);
+            //eprintln!("BACKUP CHecking {:?} dir: {:?} to {:?} which gets {:?}", (origin.0+0.01, origin.1+0.0125), dir, poly,ray_vs_polygon_helper((origin.0+0.01, origin.1+0.0125),dir,poly_transform, poly));
+            if let Some(backup_check) = ray_vs_polygon_helper((origin.0+0.01, origin.1+0.0125),dir,poly_transform, poly) {
+                if !backup_check.inside {
+                    ret.inside = false;
+                    return Some(ret);
+                }
+            } else {
+                return None;
+            }
+        }
+        Some(ret)
+    } else {
+        None
+    }
+    
+}
+pub fn ray_vs_polygon_helper(
     origin: F64Point, dir: F64Point, poly_transform: &Transform, poly: &[F64Point],
 ) -> Option<RayParamAndHitCount> {
     if poly.len() == 0 {
@@ -393,7 +444,7 @@ pub fn ray_vs_polygon(
     let mut ret: Option<f64> = None;
     for point in poly {
         let cur_point = ftransform(poly_transform, *point);
-        eprintln!("CHecking {:?} - {:?}", last, cur_point);
+        //eprintln!("CHecking {:?} - {:?}", last, cur_point);
         if let Some(t) = ray_vs_segment(origin, dir, last, cur_point) {
             if let Some(t_old) = ret {
                 ret = Some(t.min(t_old));
@@ -401,7 +452,7 @@ pub fn ray_vs_polygon(
                 ret = Some(t)
             }
             hit_count += 1;
-            eprintln!("Ray {:?} -> {:?} hit {:?}->{:?} at {:?} hc={}", origin, dir, last, cur_point, ret, hit_count);
+            //eprintln!("Ray {:?} -> {:?} hit {:?}->{:?} at {:?} hc={}", origin, dir, last, cur_point, ret, hit_count);
         }
         last = cur_point;
     }
@@ -428,16 +479,16 @@ pub fn origin_inside_polygon(origin: F64Point, dir: F64Point, poly_transform: &T
 pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transform, poly: &[F64Point], up: F64Point) -> Option<PolyIntersection> {
     let mut a_p_intersection = ray_vs_polygon(a, sub2d(b, a), poly_transform, poly);
     let mut b_p_intersection = ray_vs_polygon(b, sub2d(a, b), poly_transform, poly);
-    eprintln!("A->B {:?} B->A {:?}", a_p_intersection, b_p_intersection);
+    //eprintln!("A->B {:?} B->A {:?}", a_p_intersection, b_p_intersection);
     if a_p_intersection.is_none() && b_p_intersection.is_none() {
         return None
     }
     let a_inside = a_p_intersection.unwrap_or(RayParamAndHitCount{t:0.,inside:false}).inside;
     let b_inside = b_p_intersection.unwrap_or(RayParamAndHitCount{t:0.,inside:false}).inside;
-    eprintln!("A->B {:?} B->A {:?} ainside: {} binside: {}", a_p_intersection, b_p_intersection, a_inside, b_inside);
-    if a_inside && b_inside { // both inside
+    //eprintln!("A->B {:?} B->A {:?} ainside: {} binside: {}", a_p_intersection, b_p_intersection, a_inside, b_inside);
+    if a_inside || b_inside { // both inside
         let middle = ((a.0 + b.0) * 0.5, (a.1 + b.1) * 0.5);
-        eprintln!("middle {},{}  {},{}", a.0, a.1, b.0, b.1);
+        //eprintln!("middle {},{}  {},{}", a.0, a.1, b.0, b.1);
         if let Some(w) = origin_inside_polygon(middle, up, poly_transform, poly) {
             return Some(PolyIntersection{outward:(up.0 * w, up.1*w)})
         }
@@ -449,7 +500,7 @@ pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transfo
         }
     }
     if a_inside == false && b_inside == false && a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t <= 1.0 {
-        eprintln!("not both middle {:?} is {:?} < {:?} == {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t, a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t, b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t,a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t <= b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t);
+        //eprintln!("not both middle {:?} is {:?} < {:?} == {:?}", a_p_intersection.unwrap_or(b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false})).t, a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t, b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t,a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t <= b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t);
         // segment spans a corner but is not inside
         if a_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t < b_p_intersection.unwrap_or(RayParamAndHitCount{t:2.0,inside:false}).t {
             return Some(PolyIntersection{
@@ -478,6 +529,7 @@ mod test {
       use super::origin_inside_polygon;
       use super::Transform;
       let t = &Transform::default();
+      /*
       // a ray that would otherwise hit a polygon does not trigger a "inside" unless it starts inside
       assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),t, &[(13.,11.),(11.,13.), (12.,13.)]), None);
       assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),t, &[(12.,12.),(11.,13.), (12.,13.)]), None);
@@ -487,7 +539,45 @@ mod test {
       assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),t, &[(13.,11.),(11.,13.), (14.,13.)]), Some(0.25));
       assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),t, &[(12.,12.),(11.,13.), (14.,13.)]), Some(0.25));
       assert_eq!(origin_inside_polygon((12.75,12.75),(-1.,-1.),t, &[(13.,11.),(11.,13.), (14.,13.)]), Some(0.75));
-
+*/
+      assert_eq!(origin_inside_polygon((0.,180.),(128.,64.),t,
+                                       &[(640.0, 500.0),
+                                         (672.0, 500.0),
+                                         (672.0, 532.0),
+                                         (640.0, 532.0),
+                                         (640.0, 500.0),
+                                         (672.0, 500.0),
+                                         (672.0, 532.0),
+                                         (640.0, 532.0)]), None);
+  }
+  #[test]
+  fn test_capture_segment_inside_polygon() {
+      use super::Transform;
+      use super::segment_inside_polygon;
+      use super::ray_vs_polygon;
+      use super::RayParamAndHitCount;
+      assert_eq!(ray_vs_polygon(
+          (0.0,180.0),
+          super::sub2d((128.0,244.0), (0.0,180.0)),
+          &Transform::default(),
+          &[(16.0 + 624.0, 16.0+484.0), (48.0 + 624.0, 16.0+484.0), (48.0+624.0, 48.0+484.0), (16.0+624.0, 48.0+484.0)],
+      ), Some(RayParamAndHitCount{t:5.,inside:false}));
+      assert_eq!(segment_inside_polygon(
+          (128.0,244.0), (0.0,180.0),
+          &Transform::default(), 
+          &[(16.0 + 624.0, 16.0+484.0), (48.0 + 624.0, 16.0+484.0), (48.0+624.0, 48.0+484.0), (16.0+624.0, 48.0+484.0)],
+          (0.0,-1.0),
+      ), None);
+      /*
+      assert_eq!(segment_inside_polygon(
+          (128.0,244.0), (0.0,180.0),
+          &Transform{
+              midx:32.0, midy:32.0,rotate:0.0, tx:624.0, ty:484.0, scale:1.0,
+          }, 
+          &[(16.0, 16.0), (48.0, 16.0), (48.0, 48.0), (16.0, 48.0)],
+          (0.0,-1.0),
+          ), None);
+*/
   }
   #[test]
   fn test_segment_inside_polygon() {
@@ -498,16 +588,19 @@ mod test {
       let aabb = [(-4.,2.), (3.,2.), (3.,-1.),(-4.,-1.)];
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), t,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(-5.,0.)}));
+                 //Some(PolyIntersection{outward:(-5.,0.)}));
+                 Some(PolyIntersection{outward:(0.,1.5)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,1.5)}));
 
       assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-8.,0.)}));
       assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(6.,0.)}));
+                 //Some(PolyIntersection{outward:(6.,0.)}));
+                 Some(PolyIntersection{outward:(0.,1.5)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(-6.5,0.)}));
+                 //Some(PolyIntersection{outward:(-6.5,0.)}));
+                 Some(PolyIntersection{outward:(0.0,1.5)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,-5.)}));
@@ -517,7 +610,8 @@ mod test {
       
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_right,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(-4.,0.)}));
+                 //Some(PolyIntersection{outward:(-4.,0.)}));
+                 Some(PolyIntersection{outward:(0.,2.5)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,2.5)}));
 
@@ -526,7 +620,8 @@ mod test {
       assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-7.,0.)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(-5.5,0.)}));
+                 //Some(PolyIntersection{outward:(-5.5,0.)}));
+                 Some(PolyIntersection{outward:(0.0,2.5)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,-4.)}));
@@ -535,7 +630,8 @@ mod test {
       
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_scale,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-8.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(-8.5,0.)}));
+                 //Some(PolyIntersection{outward:(-8.5,0.)}));
+                 Some(PolyIntersection{outward:(0.0,4.)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,4.)}));
 
@@ -547,7 +643,7 @@ mod test {
                  Some(PolyIntersection{outward:(0.,4.)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_scale, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(0.,-5.5)}));
+                 Some(PolyIntersection{outward:(0.,4.5)}));
 
   }
   #[test]
@@ -561,8 +657,8 @@ mod test {
       assert_eq!(ray_vs_segment((10.,10.),(-1.,0.),(13.,11.),(10.,14.)), None);
 
 
-      assert_eq!(ray_vs_segment((10.,10.),(1.,3.),(12.,12.),(11.,13.)), Some(1.));
-      assert_eq!(ray_vs_segment((10.,10.),(1.,3.),(13.,11.),(11.,13.)), Some(1.));
+      assert_eq!(ray_vs_segment((10.,10.),(1.,3.),(12.,12.),(11.,13.)),None); //Some(1.));
+      assert_eq!(ray_vs_segment((10.,10.),(1.,3.),(13.,11.),(11.,13.)), None);//Some(1.));
       assert_eq!(ray_vs_segment((10.,10.),(-1.,-3.),(13.,11.),(11.,13.)), None);
 
       assert_eq!(ray_vs_segment((10.,10.),(3.,1.),(12.,12.),(11.,13.)), None);
@@ -690,7 +786,7 @@ use std::path::Path;
       ];
       assert_eq!(sizes.len(), assets.len());
       for (asset, size) in assets.iter().zip(&sizes[..]) {
-          eprintln!("Testing Asset {}\n", asset);
+          //eprintln!("Testing Asset {}\n", asset);
           let ramp:super::PolygonSVG = from_str(&read_to_string(Path::new(&asset)).unwrap()).unwrap();
           assert_eq!(ramp.to_polygon().len(), *size);
       }
