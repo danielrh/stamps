@@ -756,7 +756,7 @@ mod test {
         let intersection = svg_deserialized.intersect((37.09,4.),(100.,4.), &mut cache).unwrap();
         let hit = intersection.unwrap();
         //xx assert_eq!((hit.0.floor(), hit.1.floor()), (0.0,-54.0));
-        assert_eq!((hit.0.floor(), hit.1.floor()), (1.0,0.0));
+        assert_eq!((hit.0.floor(), hit.1.floor()), (0.0,0.0));
         let intersection1 = svg_deserialized.intersect((38.,4.),(38.05,4.), &mut cache).unwrap();
         let hit1 = intersection1.unwrap();
         assert_eq!((hit1.0.floor(), hit1.1.floor()), (0.0,-55.0));
@@ -764,7 +764,7 @@ mod test {
         assert_eq!(intersection2, None);
         let intersection3 = svg_deserialized.intersect((-400.1,4.),(100.,4.), &mut cache).unwrap();
         let hit3 = intersection3.unwrap();
-        assert_eq!((hit3.0.floor(), hit3.1.floor()), (-99.0,0.0));
+        assert_eq!((hit3.0.floor(), hit3.1.floor()), (0.0,-28.0));
         let intersection4 = svg_deserialized.intersect((368.,183.),(369.,183.), &mut cache).unwrap();
         let hit4 = intersection4.unwrap();
         assert_eq!((hit4.0.floor(), hit4.1.floor()), (0.0,-26.0));

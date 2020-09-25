@@ -584,7 +584,7 @@ mod test {
           super::sub2d((128.0,244.0), (0.0,180.0)),
           &Transform::default(),
           &[(16.0 + 624.0, 16.0+484.0), (48.0 + 624.0, 16.0+484.0), (48.0+624.0, 48.0+484.0), (16.0+624.0, 48.0+484.0)],
-      ), Some(RayParamAndHitCount{t:5.,inside:false, segment:((672.0,500.0),(672.0,532.0))}));
+      ), Some(RayParamAndHitCount{t:5.,inside:false, segment:((640.0,500.0),(672.0,500.0))}));
       assert_eq!(segment_inside_polygon(
           (128.0,244.0), (0.0,180.0),
           &Transform::default(), 
@@ -611,7 +611,7 @@ mod test {
       let aabb = [(-4.,2.), (3.,2.), (3.,-1.),(-4.,-1.)];
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), t,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(2.,0.)}));
+                 Some(PolyIntersection{outward:(-5.,0.)}));
                  //xx Some(PolyIntersection{outward:(0.,1.5)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,1.5)}));
@@ -622,7 +622,7 @@ mod test {
                  Some(PolyIntersection{outward:(6.,0.)}));
                  //xx Some(PolyIntersection{outward:(0.,1.5)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), t, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(0.5,0.)}));
+                 Some(PolyIntersection{outward:(-6.5,0.)}));
                  //xx Some(PolyIntersection{outward:(0.0,1.5)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), t, &aabb[..], (0.,1.)),
@@ -633,7 +633,7 @@ mod test {
       
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_right,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(3.,0.)}));
+                 Some(PolyIntersection{outward:(-4.,0.)}));
                  //xx Some(PolyIntersection{outward:(0.,2.5)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,2.5)}));
@@ -643,7 +643,7 @@ mod test {
       assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,2.5)}));
       assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), shift_right, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(1.5,0.)}));
+                 Some(PolyIntersection{outward:(-5.5,0.)}));
                  //xx Some(PolyIntersection{outward:(0.0,2.5)}));
 
       assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_right, &aabb[..], (0.,1.)),
@@ -653,7 +653,7 @@ mod test {
       
       assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_scale,&aabb[..], (0.,1.)), None);
       assert_eq!(segment_inside_polygon((-8.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
-                 Some(PolyIntersection{outward:(5.5,0.)}));
+                 Some(PolyIntersection{outward:(-8.5,0.)}));
                  //xx Some(PolyIntersection{outward:(0.0,4.)}));
       assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,4.)}));
