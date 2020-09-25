@@ -382,24 +382,27 @@ pub struct RayParamAndHitCount {
     inside: bool,
 }
 
-pub fn ray_vs_polygon(origin: F64Point, dir: F64Point, poly: &[F64Point]) -> Option<RayParamAndHitCount> {
+pub fn ray_vs_polygon(
+    origin: F64Point, dir: F64Point, poly_transform: &Transform, poly: &[F64Point],
+) -> Option<RayParamAndHitCount> {
     if poly.len() == 0 {
         return None;
     }
-    let mut last = poly[poly.len() - 1];
+    let mut last = ftransform(poly_transform, poly[poly.len() - 1]);
     let mut hit_count = 0;
     let mut ret: Option<f64> = None;
     for point in poly {
-        if let Some(t) = ray_vs_segment(origin, dir, last, *point) {
+        let cur_point = ftransform(poly_transform, *point);
+        if let Some(t) = ray_vs_segment(origin, dir, last, cur_point) {
             if let Some(t_old) = ret {
                 ret = Some(t.min(t_old));
             } else {
                 ret = Some(t)
             }
             hit_count += 1;
-            eprintln!("Ray {:?} -> {:?} hit {:?}->{:?} at {:?} hc={}", origin, dir, last, *point, ret, hit_count);
+            eprintln!("Ray {:?} -> {:?} hit {:?}->{:?} at {:?} hc={}", origin, dir, last, cur_point, ret, hit_count);
         }
-        last = *point;
+        last = cur_point;
     }
     if let Some(t) = ret {
         Some(RayParamAndHitCount{
@@ -410,8 +413,8 @@ pub fn ray_vs_polygon(origin: F64Point, dir: F64Point, poly: &[F64Point]) -> Opt
         None
     }
 }
-pub fn origin_inside_polygon(origin: F64Point, dir: F64Point, poly: &[F64Point]) -> Option<f64> {
-    let ret = ray_vs_polygon(origin, dir, poly);
+pub fn origin_inside_polygon(origin: F64Point, dir: F64Point, poly_transform: &Transform, poly: &[F64Point]) -> Option<f64> {
+    let ret = ray_vs_polygon(origin, dir, poly_transform, poly);
     if let Some(ray_param) = ret {
         if ray_param.inside {
             return Some(ray_param.t);
@@ -421,9 +424,9 @@ pub fn origin_inside_polygon(origin: F64Point, dir: F64Point, poly: &[F64Point])
 }
 
 
-pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly: &[F64Point], up: F64Point) -> Option<PolyIntersection> {
-    let mut a_p_intersection = ray_vs_polygon(a, sub2d(b, a), poly);
-    let mut b_p_intersection = ray_vs_polygon(b, sub2d(a, b), poly);
+pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly_transform: &Transform, poly: &[F64Point], up: F64Point) -> Option<PolyIntersection> {
+    let mut a_p_intersection = ray_vs_polygon(a, sub2d(b, a), poly_transform, poly);
+    let mut b_p_intersection = ray_vs_polygon(b, sub2d(a, b), poly_transform, poly);
     eprintln!("A->B {:?} B->A {:?}", a_p_intersection, b_p_intersection);
     if a_p_intersection.is_none() && b_p_intersection.is_none() {
         return None
@@ -434,13 +437,13 @@ pub fn segment_inside_polygon(a: F64Point, b: F64Point, poly: &[F64Point], up: F
     if a_inside && b_inside { // both inside
         let middle = ((a.0 + b.0) * 0.5, (a.1 + b.1) * 0.5);
         eprintln!("middle {},{}  {},{}", a.0, a.1, b.0, b.1);
-        if let Some(w) = origin_inside_polygon(middle, up, poly) {
+        if let Some(w) = origin_inside_polygon(middle, up, poly_transform, poly) {
             return Some(PolyIntersection{outward:(up.0 * w, up.1*w)})
         }
-        if let Some(w) = origin_inside_polygon(a, up, poly) {
+        if let Some(w) = origin_inside_polygon(a, up, poly_transform, poly) {
             return Some(PolyIntersection{outward:(up.0 * w, up.1*w)})
         }
-        if let Some(w) = origin_inside_polygon(b, up, poly) {
+        if let Some(w) = origin_inside_polygon(b, up, poly_transform, poly) {
             return Some(PolyIntersection{outward:(up.0 * w, up.1*w)})
         }
     }
@@ -472,37 +475,78 @@ mod test {
   #[test]
   fn test_ray_polygon_intersect() {
       use super::origin_inside_polygon;
+      use super::Transform;
+      let t = &Transform::default();
       // a ray that would otherwise hit a polygon does not trigger a "inside" unless it starts inside
-      assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),&[(13.,11.),(11.,13.), (12.,13.)]), None);
-      assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),&[(12.,12.),(11.,13.), (12.,13.)]), None);
-      assert_eq!(origin_inside_polygon((10.,10.),(-1.,-1.),&[(13.,11.),(11.,13.), (12.,13.)]), None);
+      assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),t, &[(13.,11.),(11.,13.), (12.,13.)]), None);
+      assert_eq!(origin_inside_polygon((10.,10.),(1.,1.),t, &[(12.,12.),(11.,13.), (12.,13.)]), None);
+      assert_eq!(origin_inside_polygon((10.,10.),(-1.,-1.),t, &[(13.,11.),(11.,13.), (12.,13.)]), None);
 
       // keeping the same direction but moving the start location inside the polygon
-      assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),&[(13.,11.),(11.,13.), (14.,13.)]), Some(0.25));
-      assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),&[(12.,12.),(11.,13.), (14.,13.)]), Some(0.25));
-      assert_eq!(origin_inside_polygon((12.75,12.75),(-1.,-1.),&[(13.,11.),(11.,13.), (14.,13.)]), Some(0.75));
+      assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),t, &[(13.,11.),(11.,13.), (14.,13.)]), Some(0.25));
+      assert_eq!(origin_inside_polygon((12.75,12.75),(1.,1.),t, &[(12.,12.),(11.,13.), (14.,13.)]), Some(0.25));
+      assert_eq!(origin_inside_polygon((12.75,12.75),(-1.,-1.),t, &[(13.,11.),(11.,13.), (14.,13.)]), Some(0.75));
 
   }
   #[test]
   fn test_segment_inside_polygon() {
+      let t = &Transform::default();
+      use super::Transform;
       use super::segment_inside_polygon;
       use super::PolyIntersection;
       let aabb = [(-4.,2.), (3.,2.), (3.,-1.),(-4.,-1.)];
-      assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), &aabb[..], (0.,1.)), None);
-      assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), t,&aabb[..], (0.,1.)), None);
+      assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-5.,0.)}));
-      assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,1.5)}));
 
-      assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(8.,0.)}));
-      assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(6.,0.)}));
-      assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(-6.5,0.)}));
 
-      assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), &aabb[..], (0.,1.)),
+      assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), t, &aabb[..], (0.,1.)),
                  Some(PolyIntersection{outward:(0.,6.)}));
+
+
+      let shift_right = &Transform{midx:32.,midy:32.,rotate:0.,tx:1.,ty:1.,scale:1.};
+      
+      assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_right,&aabb[..], (0.,1.)), None);
+      assert_eq!(segment_inside_polygon((-5.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(-4.,0.)}));
+      assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,2.5)}));
+
+      assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(9.,0.)}));
+      assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(7.,0.)}));
+      assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(-5.5,0.)}));
+
+      assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_right, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,7.)}));
+
+      let shift_scale = &Transform{midx:0.5,midy:0.5,rotate:0.,tx:1.,ty:1.,scale:2.};
+      
+      assert_eq!(segment_inside_polygon((-100.,-100.),(100.,-100.), shift_scale,&aabb[..], (0.,1.)), None);
+      assert_eq!(segment_inside_polygon((-8.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(-8.5,0.)}));
+      assert_eq!(segment_inside_polygon((0.,0.5),(1.,0.5), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,4.)}));
+
+      assert_eq!(segment_inside_polygon((-5.,0.5),(4.,0.5), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,4.)}));
+      assert_eq!(segment_inside_polygon((-3.,0.5),(4.,0.5), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,4.)}));
+      assert_eq!(segment_inside_polygon((-5.,0.5),(2.5,0.5), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,4.)}));
+
+      assert_eq!(segment_inside_polygon((0.,-4.),(0.,4.), shift_scale, &aabb[..], (0.,1.)),
+                 Some(PolyIntersection{outward:(0.,-5.5)}));
 
   }
   #[test]
