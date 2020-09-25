@@ -6,5 +6,5 @@ extern crate regex;
 mod polygonsvg;
 mod svgxml;
 pub use svgxml::{Color, SVG, Transform, HrefAndClipMask, Polygon, F64Point, ClipPath, g};
-pub use svgxml::{itransform, ftransform, compose, poly_edge_intersect};
+pub use svgxml::{itransform, ftransform, poly_edge_intersect, compose};
 

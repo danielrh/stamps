@@ -397,7 +397,7 @@ impl SVG {
             Ok(s) => s,
             Err(e) => return Err(serde::de::Error::custom(e)),
         };
-        super::polygonsvg::to_polygon(&asset_data)
+        super::polygonsvg::to_polygon(&asset_data, )
     }
     //
     pub fn intersect(&self, left: F64Point, right:F64Point, cache: &mut HashMap<String,Vec<F64Point>>) -> Result<Option<F64Point>, serde_xml_rs::Error> {
